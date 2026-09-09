@@ -47,10 +47,10 @@ public class PermisosController {
     /**
      * Los permisos ya configurados del grupo, para cargar la matriz antes de guardarla.
      *
-     * <p>No trae las 134 opciones del catalogo: trae las que este grupo tiene configuradas. La
-     * pantalla combina esta respuesta —tipicamente unas pocas filas— con la pagina de {@code GET
+     * <p>No trae las 157 opciones del catalogo unido: trae las que este grupo tiene configuradas.
+     * La pantalla combina esta respuesta —tipicamente unas pocas filas— con la pagina de {@code GET
      * /seguridad/accesos}, que ya pagina el catalogo entero. Ninguna de las dos necesita traer las
-     * 134 opciones a la vez.
+     * 157 opciones a la vez.
      */
     @GetMapping
     @RequiereAcceso(acceso = "permisos", privilegio = Privilegio.LECTURA)

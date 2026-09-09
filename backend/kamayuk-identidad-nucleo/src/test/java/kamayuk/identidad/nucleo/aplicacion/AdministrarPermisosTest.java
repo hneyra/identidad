@@ -30,10 +30,19 @@ import org.junit.jupiter.api.Test;
  * RF-121 contra PostgreSQL real: otorgar, retirar, la precedencia y el ultimo administrador.
  *
  * <p>Viene de {@code rentas} con las once escrituras. <b>Lo que cambia es que un acceso se resuelve
- * por el par {@code (sistema, codigo)}</b>, y eso no es una firma mas larga: {@code permisos} es
- * una opcion de este sistema <b>y otra</b> de {@code rentas}, asi que resolver por el codigo solo
+ * por el par {@code (sistema, codigo)}</b>, y eso no es una firma mas larga: {@code accesos} es una
+ * opcion de este sistema <b>y otra</b> de {@code rentas}, asi que resolver por el codigo solo
  * autorizaria contra el catalogo de otro — y en la guarda del ultimo administrador eso significa
  * dar por administrador de {@code identidad} a quien administra los permisos de otro sistema.
+ *
+ * <p><b>Hasta la etapa 3 el homonimo con que se media esto era {@code permisos}</b>, que entonces
+ * era una opcion de los dos. La etapa 4 lo retiro de {@code rentas} con sus escrituras, y desde
+ * entonces ningun catalogo real tiene otro {@code permisos}: el homonimo que queda de verdad es
+ * {@code accesos} (y {@code modulos}), y es el que usa la prueba de las dos filas. La guarda del
+ * ultimo administrador, que cuenta el par {@code (identidad, permisos)}, se mide con un homonimo
+ * <b>sembrado por la propia prueba</b>, porque el defecto que vigila —contar por el codigo— es el
+ * mismo aunque hoy no haya con que confundirse, y el dia que otro sistema estrene una opcion con
+ * ese codigo ese es el momento en que no se puede descubrir.
  */
 @DisplayName("RF-121 — Permisos y niveles de accesibilidad")
 class AdministrarPermisosTest {
@@ -41,6 +50,9 @@ class AdministrarPermisosTest {
     private static final Set<Privilegio> LOS_SIETE = EnumSet.allOf(Privilegio.class);
     private static final Set<Privilegio> NINGUNO = EnumSet.noneOf(Privilegio.class);
     private static final String OPCION_DE_ADMINISTRACION = "permisos";
+
+    /** Un codigo que existe en el catalogo de este sistema Y en el de {@code rentas} (etapa 4). */
+    private static final String OPCION_COMPARTIDA = "accesos";
 
     private static ArnesDeAdministracion arnes;
     private static long municipalidad;
@@ -279,6 +291,22 @@ class AdministrarPermisosTest {
             Usuario usuario = usuario("admin.rentas", "Administra rentas");
             arnes.administrar().afiliar(otros.id(), usuario.id(), Observacion.de("Entra al grupo"));
 
+            // `rentas:permisos` fue una opcion REAL hasta la etapa 4; desde entonces no hay otro
+            // `permisos` en ningun catalogo, asi que el homonimo se siembra aqui, con el mismo
+            // sembrador de la implantacion. Lo que se mide no cambia: si la guarda contara por el
+            // codigo, esta cuenta seria administradora de `identidad`.
+            arnes.sembrador()
+                    .sembrar(
+                            CatalogoUnido.de(
+                                    List.of(
+                                            new CatalogoUnido.Opcion(
+                                                    "rentas",
+                                                    "SEGURIDAD",
+                                                    "Seguridad",
+                                                    OPCION_DE_ADMINISTRACION,
+                                                    "Un homonimo que solo existe en esta prueba"))),
+                            Observacion.de("El homonimo de `permisos` que la etapa 4 retiro"));
+
             // Le damos los siete sobre `rentas:permisos`, que es OTRA opcion con el mismo codigo.
             arnes.permisos()
                     .fijarParaGrupo(
@@ -368,23 +396,20 @@ class AdministrarPermisosTest {
                     .fijarParaGrupo(
                             grupo.id(),
                             SistemasDelProducto.IDENTIDAD,
-                            OPCION_DE_ADMINISTRACION,
+                            OPCION_COMPARTIDA,
                             EnumSet.of(Privilegio.LECTURA),
-                            Observacion.de("Lectura de los permisos de este sistema"));
+                            Observacion.de("Lectura de los accesos de este sistema"));
             arnes.permisos()
                     .fijarParaGrupo(
                             grupo.id(),
                             "rentas",
-                            OPCION_DE_ADMINISTRACION,
+                            OPCION_COMPARTIDA,
                             EnumSet.of(Privilegio.IMPRESION),
-                            Observacion.de("Impresion de los permisos de rentas"));
+                            Observacion.de("Impresion de los accesos de rentas"));
 
             assertThat(
                             arnes.permisos().deGrupo(grupo.id()).stream()
-                                    .filter(
-                                            p ->
-                                                    OPCION_DE_ADMINISTRACION.equals(
-                                                            p.codigoDeAcceso()))
+                                    .filter(p -> OPCION_COMPARTIDA.equals(p.codigoDeAcceso()))
                                     .map(p -> p.sistema() + "=" + p.privilegios())
                                     .sorted()
                                     .toList())

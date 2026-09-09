@@ -108,7 +108,8 @@ class ImplantacionEmiteSusEventosTest {
         // primera nadie podria consumir el buzon; sin la segunda —si recibiera los siete sobre
         // todo, como el de administracion— seria un segundo administrador de la municipalidad
         // creado por el despliegue; y la tercera es lo que dice que afiliar las cuatro cuentas de
-        // servicio es de la etapa 4 y no un olvido de esta.
+        // servicio es del despliegue y no un olvido de esta — la etapa 4 construyo los consumidores
+        // y no toco esto.
         assertThat(
                         arnes.filas(
                                 "SELECT a.sistema || ':' || a.codigo FROM permiso p"

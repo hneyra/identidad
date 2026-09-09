@@ -27,8 +27,16 @@ funcionario que no sea el administrador recibe un 403 de cada pantalla de `catas
 `caja` — con la unica salida de escribir SQL a mano contra produccion. Hoy no se ve porque cada
 municipalidad declarada tiene un solo usuario; **se ve el dia que haya un segundo funcionario**.
 
-Este repositorio es la **etapa 1** de las cinco que ADR-0039 reparte: el sitio donde poner lo
-demas. **El defecto sigue vivo hasta la etapa 4**, y eso se dice aqui en vez de descubrirse.
+Este repositorio nacio como la **etapa 1** de las cinco que ADR-0039 reparte: el sitio donde
+poner lo demas. Lo de arriba describe el estado del que se salio. Desde la **etapa 4** la
+administracion vive **solo aqui** —las once escrituras llegaron en la etapa 2, `rentas` retiro las
+suyas y las cuatro opciones que las servian (134 → 130)—, cada escritura sale por el buzon
+(`identidad_evento`) en su misma transaccion, el buzon se sirve por HTTP con acuse por consumidor
+(etapa 3), y **los cuatro sistemas lo consumen** con su propio ingestor, que declara lo que lee en
+`docs/50-api/contratos-que-consume/identidad.json` y se comprueba en el CI de aqui. Lo que sigue
+sin medirse es **cuanto dura la ventana de inconsistencia** de cada copia local (etapa 5), y quien
+afilia las cuatro cuentas de servicio al grupo «Consumidores del buzon» sigue siendo el despliegue.
+El estado medido de cada pieza esta en `CLAUDE.md`, fila a fila.
 
 ## Que hay hoy, y que falta
 

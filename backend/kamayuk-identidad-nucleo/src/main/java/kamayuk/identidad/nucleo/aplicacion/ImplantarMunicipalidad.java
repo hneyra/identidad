@@ -86,9 +86,9 @@ import org.springframework.stereotype.Component;
  * esa delegacion es una decision de la municipalidad: crearla vacia desde el despliegue seria
  * decidir por ella.
  *
- * <p>El grupo de administracion recibe los siete privilegios sobre las <b>161</b> opciones de los
- * cinco catalogos, que es lo que hace que el primer dia haya alguien que pueda configurar todo lo
- * demas.
+ * <p>El grupo de administracion recibe los siete privilegios sobre las <b>157</b> opciones de los
+ * cinco catalogos —la cifra que {@code CatalogoUnidoTest} mide—, que es lo que hace que el primer
+ * dia haya alguien que pueda configurar todo lo demas.
  *
  * <p>«Consumidores del buzon» recibe <b>una sola opcion</b>, {@code (identidad, eventos)}, y solo
  * {@code LECTURA} y {@code REGISTRO} — que son exactamente los dos privilegios que {@code
@@ -96,12 +96,14 @@ import org.springframework.stereotype.Component;
  * que borrar: el buzon es inmutable y su acuse tambien.
  *
  * <p><b>Y nace sin ningun miembro, que es lo que hay que saber</b>: afiliar a el las cuatro cuentas
- * de servicio —{@code service-account-kamayuk-<sistema>-servicio-<ubigeo>}— es de la <b>etapa 4</b>
- * y del despliegue, porque hoy ninguna de las cuatro tiene fila en {@code usuario}. Se crea igual,
- * y no se deja para entonces, por dos motivos: el grupo con su permiso es lo unico de esa
- * afiliacion que este repositorio puede decidir —a quien se afilia lo decide quien despliegue—, y
- * un grupo vacio con el permiso puesto convierte esa etapa en un {@code POST} de afiliacion, en vez
- * de en «alguien tiene que acordarse de crear un grupo y darle exactamente esta opcion y no otra».
+ * de servicio —{@code service-account-kamayuk-<sistema>-servicio-<ubigeo>}— es del
+ * <b>despliegue</b>, y la etapa 4 no lo cambio: construyo los cuatro consumidores, pero que esas
+ * cuentas existan en el emisor y tengan fila en {@code usuario} sigue siendo de quien despliega.
+ * Hoy ninguna de las cuatro la tiene. Se crea igual, y no se deja para entonces, por dos motivos:
+ * el grupo con su permiso es lo unico de esa afiliacion que este repositorio puede decidir —a quien
+ * se afilia lo decide quien despliegue—, y un grupo vacio con el permiso puesto convierte esa etapa
+ * en un {@code POST} de afiliacion, en vez de en «alguien tiene que acordarse de crear un grupo y
+ * darle exactamente esta opcion y no otra».
  *
  * <h2>Idempotente, entera</h2>
  *

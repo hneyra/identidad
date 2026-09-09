@@ -13,9 +13,12 @@
  * el issue que separo lo configurado de lo efectivo— se queda en el {@code git log} de {@code
  * rentas}, y ahi hay que ir a buscarla. Es lo mismo que P5A hizo con {@code sgtm}.
  *
- * <p><b>{@code rentas} no cambia en esta etapa</b>, y es deliberado (AC-7): hasta que tenga su
- * consumidor de eventos, quitarle sus escrituras lo dejaria peor que antes. Entre esta etapa y la 4
- * hay <b>dos sitios donde se administra</b>, y eso se dice en vez de descubrirse.
+ * <p><b>{@code rentas} conservo sus escrituras durante las etapas 2 y 3</b>, y fue deliberado
+ * (AC-7): hasta que tuviera su consumidor de eventos, quitarselas lo habria dejado peor que antes,
+ * y en ese intervalo hubo <b>dos sitios donde se administraba</b>. La <b>etapa 4</b> lo cerro: los
+ * cuatro sistemas consumen el buzon de aqui, y {@code rentas} retiro sus once escrituras, sus dos
+ * repositorios y las cuatro opciones de {@code SEGURIDAD} que las servian. Desde entonces <b>este
+ * es el unico sitio donde se administra</b>.
  *
  * <h2>Las once escrituras y sus siete hechos</h2>
  *

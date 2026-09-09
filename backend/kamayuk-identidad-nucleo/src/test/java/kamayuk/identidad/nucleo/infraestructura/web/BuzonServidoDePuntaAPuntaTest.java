@@ -229,7 +229,7 @@ class BuzonServidoDePuntaAPuntaTest {
         assertThat(acuse.getResponse().getContentAsString()).contains(inventado.toString());
     }
 
-    /** La forma del evento servido es la que la etapa 4 va a leer. */
+    /** La forma del evento servido es la que los cuatro consumidores leen desde la etapa 4. */
     @Test
     @DisplayName("el evento servido trae los siete campos que el consumidor lee")
     void laFormaDelEventoServido() throws Exception {
@@ -244,9 +244,10 @@ class BuzonServidoDePuntaAPuntaTest {
 
         assertThat(cuerpo)
                 .as(
-                        "[esta es la forma que cada consumidor declarara en su"
-                                + " docs/50-api/contratos-que-consume/identidad.json (etapa 4): un"
-                                + " campo que se retire aqui deja su adaptador leyendo un nulo]")
+                        "[esta es la forma que cada consumidor declara en su"
+                                + " docs/50-api/contratos-que-consume/identidad.json desde la"
+                                + " etapa 4, y que ContratoCon<Consumidor>Test compara: un campo"
+                                + " que se retire aqui deja su adaptador leyendo un nulo]")
                 .contains("\"eventos\"")
                 .contains("\"quedan\"")
                 .contains("\"eventoId\"")

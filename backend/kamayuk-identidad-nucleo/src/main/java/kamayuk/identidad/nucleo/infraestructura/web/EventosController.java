@@ -76,9 +76,13 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Quien se la concede es la <b>implantacion</b>, que siembra el grupo «Consumidores del buzon»
  * con {@code eventos} y nada mas. Ese grupo nace <b>sin miembros</b>, y es una afirmacion: afiliar
- * a el las cuatro cuentas de servicio es de la <b>etapa 4</b> y del despliegue —hoy ninguna de las
- * cuatro tiene fila en {@code usuario}, asi que el guardia les contestaria «la cuenta no esta dada
- * de alta en este sistema», que es lo correcto y es exactamente lo que esa etapa cierra—.
+ * a el las cuatro cuentas de servicio es del <b>despliegue</b>, y la etapa 4 —que construyo los
+ * cuatro consumidores— no lo cambio, porque que esas cuentas existan en el emisor y tengan fila en
+ * {@code usuario} lo decide quien despliega. Hoy ninguna de las cuatro la tiene, asi que el guardia
+ * les contesta 403 {@code SIN_PRIVILEGIO} con «la cuenta no esta dada de alta en este sistema», que
+ * es lo correcto — y el resto de esa frase, «la administracion de usuarios, grupos y permisos vive
+ * en rentas», es de {@code GuardiaDeAcceso} de la plataforma compartida y ya no es verdad en
+ * ninguno de los cinco: vive aqui. Se corrige en la pieza compartida, no en una copia.
  */
 @RestController
 @RequestMapping(Api.RAIZ + "/eventos")

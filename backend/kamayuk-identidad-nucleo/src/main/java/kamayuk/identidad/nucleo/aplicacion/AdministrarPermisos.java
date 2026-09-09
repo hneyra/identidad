@@ -91,10 +91,10 @@ public class AdministrarPermisos {
     /**
      * Los permisos ya configurados de un grupo, con el codigo de cada acceso resuelto.
      *
-     * <p><b>No trae las 134 opciones del catalogo</b>: trae las que este grupo tiene configuradas,
-     * que para la mayoria son unas pocas. La pantalla de la matriz combina esta lista —sparse— con
-     * la pagina de {@code GET /seguridad/accesos} que ya esta conectada, y así nunca carga el
-     * catalogo entero en memoria solo para dibujar una matriz.
+     * <p><b>No trae las 157 opciones del catalogo unido</b>: trae las que este grupo tiene
+     * configuradas, que para la mayoria son unas pocas. La pantalla de la matriz combina esta lista
+     * —sparse— con la pagina de {@code GET /seguridad/accesos} que ya esta conectada, y así nunca
+     * carga el catalogo entero en memoria solo para dibujar una matriz.
      */
     @Transactional(readOnly = true)
     public List<PermisoDeAcceso> deGrupo(long grupoId) {

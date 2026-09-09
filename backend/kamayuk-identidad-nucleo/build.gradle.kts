@@ -26,8 +26,10 @@ dependencies {
 
 // AC-4: el catalogo de accesos de los CINCO sistemas, copiado al jar.
 //
-// Son 160 opciones —134 de `rentas`, 16 de `catastro`, 6 de aqui, 3 de `caja` y 1 de
-// `normativa`— y esta base las siembra todas, porque lo que guarda es a quien se le concede cada
+// Son 157 opciones —130 de `rentas`, 16 de `catastro`, 7 de aqui, 3 de `caja` y 1 de
+// `normativa`; eran 160 al escribirse esto, 161 con `eventos` (etapa 3) y 157 desde que la etapa 4
+// retiro de `rentas` las cuatro de administracion que ya no sirve— y esta base las siembra todas,
+// porque lo que guarda es a quien se le concede cada
 // opcion de todos (ADR-0039). El de `rentas` se DERIVA de su catalogo del manual con
 // `docs/10-negocio/derivar-catalogo-de-rentas.mjs`; los otros cuatro estan transcritos de su
 // `CatalogoDelSistema.java`. Lo que impide que las cinco copias se separen de sus originales es la

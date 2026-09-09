@@ -32,11 +32,16 @@ class CatalogoUnidoTest {
     /**
      * Lo medido el 2026-09-09, leyendo los cinco originales.
      *
-     * <p>{@code rentas} son las 134 de {@code docs/10-negocio/catalogo-de-opciones.md} —<b>las 134,
-     * sin quitar las once de Seguridad</b>: mientras {@code rentas} conserve sus escrituras hasta
-     * la etapa 4 (AC-7), su catalogo real las tiene, y la guarda cruzada compara contra el catalogo
-     * REAL de cada clon. Quitarlas aqui pondria roja esa guarda por once opciones que ese sistema
-     * si declara—. Las otras cuatro son lo que declara el {@code CatalogoDelSistema} de cada uno.
+     * <p>{@code rentas} son las <b>130</b> de {@code docs/10-negocio/catalogo-de-opciones.md} desde
+     * la <b>etapa 4</b>: hasta la 3 eran 134, porque {@code rentas} conservaba sus once escrituras
+     * de administracion (AC-7) y su catalogo real declaraba las opciones que las servian. Con su
+     * consumidor construido, su AC-4 retiro las <b>cuatro</b> que ya no sirve —{@code usuarios},
+     * {@code grupos}, {@code miembros} y {@code permisos}— y conservo las otras siete de {@code
+     * SEGURIDAD}, {@code modulos} y {@code accesos} incluidas: son lecturas de su copia local, que
+     * su interfaz sigue pidiendo para componer el menu. No se retiraron once, y hay que saberlo. La
+     * cifra sale de {@code derivar-catalogo-de-rentas.mjs} sobre el clon hermano, y la guarda
+     * cruzada de {@code infrastructure} compara contra el catalogo REAL de cada clon. Las otras
+     * cuatro son lo que declara el {@code CatalogoDelSistema} de cada uno.
      *
      * <p><b>{@code identidad} pasa de 6 a 7 en la etapa 3</b>, y la que entra es {@code eventos}:
      * la opcion con la que los cuatro sistemas leen y acusan el buzon. No sale del manual —no es
@@ -46,7 +51,7 @@ class CatalogoUnidoTest {
      * CatalogoDelSistemaTest} comprueba en los dos sentidos.
      */
     private static final Map<String, Integer> CUANTAS =
-            Map.of("rentas", 134, "catastro", 16, "normativa", 1, "caja", 3, "identidad", 7);
+            Map.of("rentas", 130, "catastro", 16, "normativa", 1, "caja", 3, "identidad", 7);
 
     @Test
     @DisplayName("los cinco cargan del jar, con las opciones medidas")
@@ -70,7 +75,7 @@ class CatalogoUnidoTest {
         }
 
         assertThat(catalogo.opciones())
-                .as("las 161 de los cinco, que son las que la implantacion siembra")
+                .as("las 157 de los cinco, que son las que la implantacion siembra")
                 .hasSize(CUANTAS.values().stream().mapToInt(Integer::intValue).sum());
     }
 
@@ -94,17 +99,27 @@ class CatalogoUnidoTest {
         // El contraste que justifica la columna `sistema` del baseline. Sin el, «se llavea por el
         // par» seria una decision de esquema que ninguna prueba ejerce, y con un solo catalogo
         // sembrado —el estado de la etapa 1— habria sido cierto que el codigo bastaba.
-        assertThat(
-                        catalogo.opciones().stream()
-                                .filter(o -> "permisos".equals(o.codigo()))
-                                .map(CatalogoUnido.Opcion::sistema)
-                                .sorted()
-                                .toList())
-                .as(
-                        "«permisos» es una opcion de este sistema Y otra de `rentas`. Resolver un"
-                                + " acceso por el codigo solo devolveria dos filas, y elegir una seria"
-                                + " autorizar contra el catalogo de otro sistema")
-                .containsExactly("identidad", "rentas");
+        //
+        // Hasta la etapa 3 el homonimo era «permisos». La etapa 4 lo retiro de `rentas` junto con
+        // sus escrituras, y los que quedan son «modulos» y «accesos»: `rentas` los conserva porque
+        // son LECTURAS de su copia local que su interfaz pide para componer el menu, y aqui son
+        // las dos primeras del catalogo de administracion. Se afirman los dos, para que retirar
+        // uno de los dos de cualquiera de los dos lados deje esta prueba con un sujeto y no con
+        // ninguno.
+        for (String homonimo : List.of("modulos", "accesos")) {
+            assertThat(
+                            catalogo.opciones().stream()
+                                    .filter(o -> homonimo.equals(o.codigo()))
+                                    .map(CatalogoUnido.Opcion::sistema)
+                                    .sorted()
+                                    .toList())
+                    .as(
+                            "«%s» es una opcion de este sistema Y otra de `rentas`. Resolver un"
+                                    + " acceso por el codigo solo devolveria dos filas, y elegir una"
+                                    + " seria autorizar contra el catalogo de otro sistema",
+                            homonimo)
+                    .containsExactly("identidad", "rentas");
+        }
     }
 
     @Test

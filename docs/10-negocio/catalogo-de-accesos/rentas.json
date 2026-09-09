@@ -568,24 +568,8 @@
           "nombre": "Módulos del sistema"
         },
         {
-          "codigo": "usuarios",
-          "nombre": "Usuarios del sistema"
-        },
-        {
-          "codigo": "grupos",
-          "nombre": "Grupos de usuarios"
-        },
-        {
           "codigo": "accesos",
           "nombre": "Accesos y políticas"
-        },
-        {
-          "codigo": "miembros",
-          "nombre": "Gestión de miembros"
-        },
-        {
-          "codigo": "permisos",
-          "nombre": "Permisos y niveles de accesibilidad"
         },
         {
           "codigo": "cambiar_anio",

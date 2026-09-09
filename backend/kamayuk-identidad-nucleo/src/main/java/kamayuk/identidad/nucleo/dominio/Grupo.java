@@ -10,7 +10,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Los permisos se otorgan al grupo y los usuarios se afilian: dar de alta a alguien es meterlo
  * en «Mesa de Partes», no repetirle veinte permisos. Es como se administra un sistema municipal, y
- * es lo que hace manejable el modelo de siete privilegios sobre 134 opciones.
+ * es lo que hace manejable el modelo de siete privilegios sobre las 157 opciones del catalogo unido
+ * de los cinco sistemas.
  *
  * @param id nulo mientras no se ha guardado
  * @param habilitado inhabilitar retira el acceso de todos sus miembros, sin borrar ninguna relacion

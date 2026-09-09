@@ -34,9 +34,11 @@ import org.junit.jupiter.api.Test;
  * que en los cinco sistemas, y una fuga aqui es una fuga en todos.
  *
  * <p><b>Lo que cambia respecto de la version de {@code rentas}</b>: el catalogo sembrado son las
- * <b>160</b> opciones de los cinco sistemas y no las 134 de uno, y los dos listados aceptan
- * acotarse por sistema. Eso no es un detalle de cifras: es la diferencia entre una base que guarda
- * su menu y una que guarda a quien se le concede cada opcion de todos (ADR-0039).
+ * <b>157</b> opciones de los cinco sistemas —eran 160 al copiarse, 161 con {@code eventos} en la
+ * etapa 3, y 157 desde que la etapa 4 retiro de {@code rentas} las cuatro que ya no sirve— y no las
+ * de uno, y los dos listados aceptan acotarse por sistema. Eso no es un detalle de cifras: es la
+ * diferencia entre una base que guarda su menu y una que guarda a quien se le concede cada opcion
+ * de todos (ADR-0039).
  */
 @DisplayName("RF-120 — Administracion de la seguridad")
 class AdministrarSeguridadTest {
