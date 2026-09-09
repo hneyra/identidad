@@ -516,4 +516,77 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
     public Set<String> ambitosAusentes() {
         return Set.of("fiscalizacion", "indicadores");
     }
+
+    /**
+     * Los dos que escriben la autorizacion aqui, y <b>no son una excepcion: son el sistema</b>.
+     *
+     * <h2>Que enciende esta lista, y por que hasta ahora no lo estaba</h2>
+     *
+     * <p>La regla 12 de ADR-0039 —ningun sistema que no sea {@code identidad} escribe {@code
+     * usuario}, {@code grupo}, {@code miembro} o {@code permiso}— nace <b>desactivada</b> en cada
+     * repositorio: mientras este metodo devuelva {@code null}, el escaner <b>no revisa nada</b> y
+     * lo dice en cada corrida en vez de callarlo. Aqui llevaba sin declararse desde que la
+     * prohibicion entro en la libreria (etapa 2), asi que el unico repositorio donde la regla tiene
+     * que estar encendida era el unico donde no vigilaba nada — y no en verde por casualidad, sino
+     * con su propio aviso impreso: «no se vigila en este repositorio … No es «no hay escrituras»:
+     * es «no se ha mirado»». Declararla es atender ese aviso.
+     *
+     * <h2>Los dos, con su motivo y SIN FECHA DE FIN</h2>
+     *
+     * <p>En los otros cuatro repositorios cada entrada es <b>deuda con nombre y con fecha</b>: el
+     * sembrador de la copia local vive hasta la etapa 5, y las de {@code rentas} vivieron hasta la
+     * 4. Aqui no: este sistema <b>es</b> el dueño de la autorizacion (ADR-0039), asi que estas dos
+     * escrituras no son una excepcion que haya que cerrar sino el sistema haciendo lo suyo. Va
+     * escrito con esas palabras —«SIN FECHA DE FIN»— junto a cada entrada y no solo aqui arriba,
+     * para que nadie las lea como pendientes y les busque una.
+     *
+     * <p><b>El motivo va en el comentario de cada entrada y no dentro de la cadena</b>, y esto se
+     * midio: el escaner exime con {@code eximidos.contains(claseDe(archivo))}, o sea comparando el
+     * <b>nombre simple</b> de la clase con el del archivo. Escrito «Clase: motivo» no exime a
+     * nadie: las siete escrituras siguen saliendo rojas <b>y ademas</b> #27 señala las dos entradas
+     * por no nombrar ninguna clase de produccion. Es la misma forma que las otras listas
+     * «ConMotivo» de los cinco repositorios.
+     *
+     * <ul>
+     *   <li><b>{@code AdministracionRepositoryJdbc}</b>: la persistencia de las nueve escrituras de
+     *       usuarios, grupos y afiliaciones —{@code INSERT}/{@code UPDATE} sobre {@code grupo},
+     *       {@code usuario} y {@code miembro}—. Es el repositorio del contexto acotado, detras de
+     *       {@code AdministrarSeguridad}: quien DECIDE es el caso de uso, con su observacion (regla
+     *       10), su auditoria y su evento en la misma transaccion.
+     *   <li><b>{@code PermisoRepositoryJdbc}</b>: las dos matrices de permisos —{@code INSERT INTO
+     *       permiso} y {@code UPDATE permiso SET}—, detras de {@code AdministrarPermisos}, que es
+     *       ademas quien comprueba que no se quede la municipalidad sin administrador.
+     * </ul>
+     *
+     * <h2>Medido antes de escribirlo, y son exactamente estos dos</h2>
+     *
+     * <p>Con la lista declarada <b>vacia</b>, el escaner señala <b>siete</b> escrituras en
+     * <b>dos</b> archivos: {@code PermisoRepositoryJdbc} lineas 407 y 440, y {@code
+     * AdministracionRepositoryJdbc} lineas 173, 193, 248, 276 y 374. Ni una mas — en particular,
+     * <b>{@code ImplantarMunicipalidad} no aparece</b> aunque desde la etapa 4 de de alta las
+     * cuatro cuentas de servicio y las afilie: escribe <b>por</b> {@code AdministrarSeguridad}, no
+     * con SQL propio, y eso es justo lo que la regla quiere — la escritura pasa por el caso de uso,
+     * que exige observacion, asienta auditoria y publica el hecho en el buzon. Un tercer escritor
+     * con SQL propio tendria que entrar aqui con su motivo, o dejar de escribir.
+     *
+     * <p><b>#27 cierra el censo por el otro lado</b>: {@code SujetosDeLaConfiguracion} exige que
+     * cada nombre de esta lista sea el de una clase de produccion que exista. Una entrada que no
+     * nombre a nadie no exime a nadie, y sigue ahi para eximir a lo que manana nazca con ese
+     * nombre.
+     */
+    @Override
+    public Set<String> escritoresDeLaAutorizacionConMotivo() {
+        return Set.of(
+                // Las nueve escrituras de usuarios, grupos y afiliaciones: INSERT/UPDATE sobre
+                // `grupo`, `usuario` y `miembro`. SIN FECHA DE FIN — este sistema ES el dueño de la
+                // autorizacion (ADR-0039), asi que no es deuda que cerrar y no hay que buscarle
+                // una. Quien DECIDE es AdministrarSeguridad, con su observacion (regla 10), su
+                // auditoria y su evento en la misma transaccion; esta clase solo persiste.
+                "AdministracionRepositoryJdbc",
+                // Las dos matrices de permisos, de grupo y de usuario: INSERT INTO permiso y
+                // UPDATE permiso SET. SIN FECHA DE FIN, por lo mismo. Quien decide es
+                // AdministrarPermisos, que ademas comprueba tras cada escritura que la
+                // municipalidad no se quede sin ningun usuario capaz de administrar permisos.
+                "PermisoRepositoryJdbc");
+    }
 }
