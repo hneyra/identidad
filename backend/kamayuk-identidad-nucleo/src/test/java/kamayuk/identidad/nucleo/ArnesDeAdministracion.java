@@ -58,6 +58,7 @@ public final class ArnesDeAdministracion implements AutoCloseable {
 
     private final BaseDeDatosDePrueba base;
     private final JdbcClient jdbc;
+    private final TenantTransactionManager gestor;
     private final TransactionTemplate transaccion;
     private final AdministrarSeguridad administrar;
     private final AdministrarPermisos permisos;
@@ -75,6 +76,7 @@ public final class ArnesDeAdministracion implements AutoCloseable {
 
         this.jdbc = JdbcClient.create(pool);
         TenantTransactionManager gestor = new TenantTransactionManager(pool);
+        this.gestor = gestor;
         this.transaccion = new TransactionTemplate(gestor);
 
         AuditoriaJdbc auditoria = new AuditoriaJdbc(jdbc, RELOJ);
@@ -120,6 +122,19 @@ public final class ArnesDeAdministracion implements AutoCloseable {
         fabrica.addAdvice(
                 new TransactionInterceptor(gestor, new AnnotationTransactionAttributeSource()));
         return (T) fabrica.getProxy();
+    }
+
+    /**
+     * Envuelve una pieza de produccion con el MISMO interceptor de transacciones que los casos de
+     * uso, para las pruebas que necesitan una que el arnes no construye.
+     *
+     * <p>La necesita {@code ElBuzonAutorizaALosConsumidoresTest} para el {@code
+     * ComprobadorDeAccesoJdbc} de {@code seguridad}: sus consultas leen tablas con RLS, asi que sin
+     * el {@code SET LOCAL} que este gestor pone no devuelven vacio — revientan. Se expone el
+     * envoltorio y no el comprobador para que este arnes no tenga que conocer a ese modulo.
+     */
+    public <T> T conTransaccion(T objetivo) {
+        return envolver(objetivo, gestor);
     }
 
     public AdministrarSeguridad administrar() {

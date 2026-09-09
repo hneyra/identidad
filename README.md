@@ -34,8 +34,12 @@ suyas y las cuatro opciones que las servian (134 → 130)—, cada escritura sal
 (`identidad_evento`) en su misma transaccion, el buzon se sirve por HTTP con acuse por consumidor
 (etapa 3), y **los cuatro sistemas lo consumen** con su propio ingestor, que declara lo que lee en
 `docs/50-api/contratos-que-consume/identidad.json` y se comprueba en el CI de aqui. Lo que sigue
-sin medirse es **cuanto dura la ventana de inconsistencia** de cada copia local (etapa 5), y quien
-afilia las cuatro cuentas de servicio al grupo «Consumidores del buzon» sigue siendo el despliegue.
+sin medirse es **cuanto dura la ventana de inconsistencia** de cada copia local (etapa 5). Las
+cuatro cuentas de servicio con que esos ingestores leen el buzon —`service-account-kamayuk-
+<sistema>-servicio-<ubigeo>`— las da de alta y las afilia al grupo «Consumidores del buzon» la
+propia **implantacion**: hasta que lo hizo, los cuatro conseguian su token del emisor y recibian un
+403 de aqui, y su copia local se quedaba como la dejo su implantacion sin un solo error que lo
+dijera.
 El estado medido de cada pieza esta en `CLAUDE.md`, fila a fila.
 
 ## Que hay hoy, y que falta

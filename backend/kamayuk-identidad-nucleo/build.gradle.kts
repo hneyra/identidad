@@ -18,6 +18,17 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testImplementation("org.springframework:spring-aop")
 
+    // SOLO EN PRUEBAS, y hace falta decir por que: `ComprobadorDeAccesoJdbc` —la implementacion
+    // del puerto que el guardia consulta— vive en `kamayuk-identidad-seguridad` a proposito,
+    // porque tiene que poder autorizar aunque este contexto acotado no este en el classpath (es la
+    // clase que los otros cuatro sistemas copian tal cual). Aqui se necesita para poder medir la
+    // etapa 4 de punta a punta: que las cuatro cuentas de servicio que la implantacion siembra
+    // pasan el guardia DE VERDAD. Escribir en la prueba un comprobador propio habria medido esa
+    // copia y no el que corre en produccion, que es exactamente lo que hace que una prueba de
+    // autorizacion no sirva. Es una arista de PRUEBAS: `main` de este modulo no ve `seguridad`, y
+    // Spring Modulith sigue verificando lo mismo.
+    testImplementation(project(":kamayuk-identidad-seguridad"))
+
     // MockMvc para las pruebas de frontera: transporte sin servidor, que es donde se ve que lo que
     // el controlador declara es lo que contesta.
     testImplementation("org.springframework:spring-test")

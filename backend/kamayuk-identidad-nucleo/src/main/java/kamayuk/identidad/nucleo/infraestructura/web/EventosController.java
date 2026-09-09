@@ -75,14 +75,19 @@ import org.springframework.web.bind.annotation.RestController;
  * que pasa.
  *
  * <p>Quien se la concede es la <b>implantacion</b>, que siembra el grupo «Consumidores del buzon»
- * con {@code eventos} y nada mas. Ese grupo nace <b>sin miembros</b>, y es una afirmacion: afiliar
- * a el las cuatro cuentas de servicio es del <b>despliegue</b>, y la etapa 4 —que construyo los
- * cuatro consumidores— no lo cambio, porque que esas cuentas existan en el emisor y tengan fila en
- * {@code usuario} lo decide quien despliega. Hoy ninguna de las cuatro la tiene, asi que el guardia
- * les contesta 403 {@code SIN_PRIVILEGIO} con «la cuenta no esta dada de alta en este sistema», que
- * es lo correcto — y el resto de esa frase, «la administracion de usuarios, grupos y permisos vive
- * en rentas», es de {@code GuardiaDeAcceso} de la plataforma compartida y ya no es verdad en
- * ninguno de los cinco: vive aqui. Se corrige en la pieza compartida, no en una copia.
+ * con {@code eventos} y nada mas, y que desde la <b>etapa 4</b> le afilia ademas las <b>cuatro
+ * cuentas de servicio</b> —{@code service-account-kamayuk-<sistema>-servicio-<ubigeo>}—. Hasta
+ * entonces ese grupo nacia vacio «porque a quien se afilia lo decide quien despliegue»; medido con
+ * las cinco aplicaciones levantadas, no lo decidia nadie: el emisor crea el cliente confidencial de
+ * cada satelite, o sea que el consumidor <b>consigue su token</b> y llega hasta aqui, y aqui su
+ * cuenta no tenia fila en {@code usuario} — 403 {@code SIN_PRIVILEGIO} «la cuenta no esta dada de
+ * alta en este sistema» en los cuatro, y la copia local de cada uno congelada sin un solo error que
+ * lo dijera.
+ *
+ * <p>Ese 403 sigue siendo lo correcto para una cuenta que de verdad no esta dada de alta —la de
+ * otra municipalidad, por ejemplo—, y el resto de su frase, «la administracion de usuarios, grupos
+ * y permisos vive en rentas», es de {@code GuardiaDeAcceso} de la plataforma compartida y ya no es
+ * verdad en ninguno de los cinco: vive aqui. Se corrige en la pieza compartida, no en una copia.
  */
 @RestController
 @RequestMapping(Api.RAIZ + "/eventos")

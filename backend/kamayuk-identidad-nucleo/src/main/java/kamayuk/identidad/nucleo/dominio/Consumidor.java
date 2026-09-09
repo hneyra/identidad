@@ -58,6 +58,17 @@ public enum Consumidor {
     private static final Pattern CLIENTE_DE_SERVICIO =
             Pattern.compile("^kamayuk-([a-z]+)-servicio-([0-9]{6})$");
 
+    /**
+     * Como nombra el emisor a la cuenta de servicio de un cliente confidencial.
+     *
+     * <p>Es la convencion de Keycloak y no una eleccion de este producto: un cliente con cuenta de
+     * servicio activada tiene un usuario {@code service-account-<clientId>}, y ese es el {@code
+     * preferred_username} que viaja en el token de {@code client_credentials}. Es la cuenta que el
+     * guardia compara con la columna {@code usuario.cuenta}, asi que es la que la implantacion
+     * tiene que dar de alta.
+     */
+    private static final String CUENTA_DE_SERVICIO = "service-account-";
+
     private final String sistema;
 
     Consumidor(String sistema) {
@@ -72,6 +83,50 @@ public enum Consumidor {
     /** Los cuatro, en el orden del reparto de ADR-0029. */
     public static List<String> sistemas() {
         return List.of(RENTAS.sistema, CATASTRO.sistema, NORMATIVA.sistema, CAJA.sistema);
+    }
+
+    /**
+     * El cliente confidencial con el que este sistema pide su token en esa municipalidad.
+     *
+     * <p>Es la otra direccion de {@link #deAzp(String)}: aquella lee el {@code azp} que llega y
+     * esta lo compone. Vive en la misma clase a proposito —y no en la implantacion, que es quien la
+     * usa— porque una forma que se compone en un sitio y se analiza en otro se separa: la que se
+     * quedaria vieja seria justo la que da de alta la cuenta, y su sintoma es una fila de {@code
+     * usuario} que ningun token nombra nunca, o sea un 403 en los cuatro consumidores semanas
+     * despues del despliegue. Que las dos direcciones cuadren lo mide {@code ConsumidorTest},
+     * componiendo y volviendo a analizar.
+     *
+     * @param ubigeo los seis digitos del INEI de la municipalidad que se implanta
+     * @throws IllegalArgumentException si con ese ubigeo no sale un cliente de la forma que {@link
+     *     #deAzp(String)} admite — que es peor que un error, porque la cuenta se daria de alta y no
+     *     serviria para nada
+     */
+    public String clienteDeServicio(String ubigeo) {
+        String cliente = "kamayuk-" + sistema + "-servicio-" + ubigeo;
+        if (!CLIENTE_DE_SERVICIO.matcher(cliente).matches()) {
+            throw new IllegalArgumentException(
+                    "Con el ubigeo «"
+                            + ubigeo
+                            + "» sale «"
+                            + cliente
+                            + "», que no tiene la forma «kamayuk-<sistema>-servicio-<ubigeo>» de"
+                            + " ADR-0028 §2: el ubigeo son seis digitos. Dar de alta esa cuenta"
+                            + " dejaria una fila de `usuario` que ningun token nombra.");
+        }
+        return cliente;
+    }
+
+    /**
+     * La cuenta con la que ese cliente llega al guardia: {@code service-account-<cliente>}.
+     *
+     * <p>Es lo que la implantacion escribe en {@code usuario.cuenta}, y lo que el guardia compara
+     * con el {@code preferred_username} del token. Medido el 2026-09-09 contra las cinco
+     * aplicaciones levantadas: sin esta fila, {@code GET /eventos/pendientes} con el token de
+     * servicio de {@code normativa} contesta <b>403</b> «La cuenta
+     * «service-account-kamayuk-normativa-servicio-200105» no esta dada de alta en este sistema».
+     */
+    public String cuentaDeServicio(String ubigeo) {
+        return CUENTA_DE_SERVICIO + clienteDeServicio(ubigeo);
     }
 
     /**
