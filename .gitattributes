@@ -1,0 +1,18 @@
+# Lo unico que este repositorio necesita declarar hoy: que los guiones viajen con LF.
+#
+# Por omision git NO conserva los bytes. Con `core.autocrlf=true` —que es un ajuste de la maquina
+# de cada quien, y no del repositorio— el filtro `clean` mete CR en todo archivo que git considere
+# texto AL COMMITEAR, asi que el blob no es lo que habia en el disco. En un `.sh` o en `gradlew`
+# eso no da un diff raro: da un `#!/usr/bin/env bash\r` que el nucleo no puede ejecutar, y el error
+# —«bad interpreter: no such file or directory»— nombra un interprete que si existe.
+#
+# `caja` y `normativa` pagaron la version cara de esta leccion por el otro lado en C-15: un cuadro
+# normativo firmado por el `sha256` de sus bytes cambiaba de huella al pasar por git, y la guarda
+# que distingue un cuadro de otro acusaba de manipulacion a un archivo intacto. Aqui no hay corpus
+# que firmar —**este repositorio no tiene ninguno**, y por eso no hereda ni una linea de aquello—,
+# pero la causa es la misma: un ajuste de la maquina no puede decidir que bytes viajan.
+*.sh text eol=lf
+gradlew text eol=lf
+
+# El de Windows lo contrario, y por lo mismo: un `.bat` con LF no lo ejecuta `cmd`.
+*.bat text eol=crlf

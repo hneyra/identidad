@@ -1,0 +1,224 @@
+# ============================================================================
+#  IDENTIDAD, LEVANTADO CONTRA LA PLATAFORMA (ADR-0031 §4, C-18, ADR-0039)
+#
+#  Solo lo de este sistema: su migrador, su implantacion y su backend. NO trae
+#  PostgreSQL ni Keycloak — los usa, y los levanta el compose de la plataforma,
+#  que vive en el clon hermano `infrastructure`:
+#
+#      docker compose -f ../infrastructure/despliegue/plataforma.compose.yaml up -d --wait
+#      docker compose -f despliegue/compose.yaml up --build --wait
+#
+#  ESTE ARCHIVO Y EL DESCRIPTOR TIENEN QUE DECIR LO MISMO. Es la trampa que
+#  ADR-0011 anoto —«dos formas de levantar el sistema, que se separen, que una
+#  variable nueva entre en el cluster y no en el compose»— y con cinco sistemas
+#  se multiplica por cinco. Lo que lo sujeta es una guarda de `infrastructure`,
+#  `infra/verificaciones/compose-de-los-sistemas.test.ts`, que lee este archivo y
+#  `infrastructure/src/descriptor.ts` y compara las dos mitades: los nombres de
+#  las variables de entorno de cada proceso, la base a la que apunta cada uno, el
+#  rol con que se conecta, el prefijo de la ruta y los dos objetivos del
+#  Dockerfile. No se copia una lista a mano: se derivan las dos y se comparan.
+#
+#  ── EL SERVICIO DEL BACKEND SE LLAMA `identidad-sistema` Y NO `identidad` ──
+#
+#  Es la tercera cara de la colision de AC-7, y la unica de las tres que produce
+#  un defecto EN EJECUCION en vez de en un grafo.
+#
+#  `servicioDe()` de `compose-de-los-sistemas.ts` compone el nombre del servicio
+#  del backend como el del sistema —los cuatro hermanos se llaman `rentas`,
+#  `catastro`, `normativa` y `caja`—, y el motivo esta escrito alli: los composes
+#  comparten la red `kamayuk-plataforma` y Compose le da a cada servicio un alias
+#  de red con su nombre, asi que dos servicios homonimos en dos proyectos dejan
+#  ese alias resolviendo a uno cualquiera de los dos.
+#
+#  Y aqui eso ya pasa, porque **el compose de la plataforma tiene un servicio que
+#  se llama `identidad`: es Keycloak** (`plataforma.compose.yaml:106`). Los cinco
+#  backends —este incluido— se traen su JWKS de `http://identidad:8080/...`. Con
+#  este servicio llamado `identidad`, ese nombre lo registran DOS contenedores en
+#  la misma red y el DNS interno de Docker reparte entre los dos: la mitad de las
+#  veces el backend le pediria las claves de firma a un backend de Spring, que
+#  contesta 404, y **todo token seria invalido de forma intermitente**. Este
+#  sistema se lo haria a si mismo y a los otros cuatro.
+#
+#  Asi que el servicio se llama `identidad-sistema`, igual que la etiqueta
+#  `componente` de sus pods, con UNA regla: *donde el nombre chocaria con el
+#  `identidad` de Keycloak, este sistema dice `identidad-sistema`*. Los otros dos
+#  servicios —`identidad-migraciones` e `identidad-implantacion`— no chocan con
+#  nada y conservan el nombre que `servicioDe()` compone.
+#
+#  LO QUE ESO CUESTA, DICHO Y NO DESCUBIERTO: hasta que el PR hermano de
+#  `infrastructure` ensene a `servicioDe()` cual es el servicio del backend de
+#  este sistema, `compose-de-los-sistemas` sale ROJO diciendo «el compose no
+#  tiene ningun servicio «identidad»». Es un rojo ruidoso que nombra la decision
+#  que hay que tomar, y se prefiere a la alternativa —llamarlo `identidad` y
+#  dejar un DNS que reparte entre dos contenedores— porque esa no se pone roja en
+#  ningun sitio: se descubre con un 401 que no se parece a su causa.
+#
+#  AQUI NO HAY FRONTEND, y no es un olvido: este sistema no tiene ninguna
+#  pantalla todavia. Las de administracion viven hoy en `rentas` y su mudanza es
+#  otro issue (ADR-0039, etapas 2 y 3). Un servicio aqui seria una segunda forma
+#  de levantar algo que el descriptor no conoce, que es la trampa que ADR-0011
+#  anoto.
+# ============================================================================
+
+name: kamayuk-identidad
+
+services:
+  # ── El migrador, que corre y termina ────────────────────────────────────────
+  #
+  # La imagen del MIGRADOR, no la de la aplicacion (C-14, punto 1): son dos
+  # objetivos del mismo `Dockerfile` y estan separados porque las credenciales de
+  # `kamayuk_owner` —el unico rol con DDL— existen durante la migracion y desaparecen
+  # con ella. Meterlas en la imagen de la aplicacion le daria DDL sobre la tabla de
+  # accesos a un proceso de larga vida expuesto en HTTP (ARQ-03 §4).
+  #
+  # Lee `KAMAYUK_DB_OWNER_USUARIO` y `KAMAYUK_DB_OWNER_CLAVE`, y NO `KAMAYUK_DB_USUARIO`:
+  # lo dice el `main` de `kamayuk.identidad.esquema.Migrador`, que rechaza
+  # argumentos a proposito para que una clave no quede en el historial del proceso.
+  identidad-migraciones:
+    build:
+      # El contexto es la RAIZ del repositorio, no `backend/`: el `.dockerignore`
+      # que lo acota vive alli y desde `backend/` no se aplica.
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: migrador
+    image: kamayuk-identidad-migrador:compose
+    environment:
+      # `base` es el servicio del compose de la plataforma, no `postgres`. En el
+      # cluster es otro nombre y lo entrega el entorno (C-17, punto 1): el
+      # descriptor pide `e.plataforma.motor` en vez de escribirlo. Lo que si es de
+      # este sistema —y por eso coincide en los dos— es el nombre de SU base.
+      KAMAYUK_DB_URL: jdbc:postgresql://base:5432/identidad
+      KAMAYUK_DB_OWNER_USUARIO: kamayuk_owner
+      KAMAYUK_DB_OWNER_CLAVE: ${KAMAYUK_CLAVE_OWNER:?falta KAMAYUK_CLAVE_OWNER, sale del .env de la plataforma}
+    # Corre y termina. Si se reinicia vuelve a comprobar el ambiente y no aplica
+    # nada: el migrador es idempotente y tiene su prueba que lo demuestra.
+    restart: "no"
+
+  # ── La implantacion: la fila de `municipalidad` en SU base ───────────────────
+  #
+  # La MISMA imagen que la aplicacion con el perfil `batch` (ADR-0003: un
+  # artefacto, dos perfiles), asi que no abre ningun puerto y termina al acabar.
+  #
+  # En el cluster el migrador va de `initContainer` de este Job, porque un
+  # `Deployment` no sabe esperar a un `Job` y Kubernetes no tiene `dependsOn`.
+  # Aqui `depends_on: service_completed_successfully` es exactamente esa espera, y
+  # por eso el orden se expresa como dependencia y no repitiendo el migrador.
+  identidad-implantacion:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: aplicacion
+    image: kamayuk-identidad:compose
+    depends_on:
+      identidad-migraciones:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: batch
+      KAMAYUK_DB_URL: jdbc:postgresql://base:5432/identidad
+      # `kamayuk_app` y solo `kamayuk_app`: sin DDL, sin BYPASSRLS, sin DELETE y
+      # propietario de nada. En este sistema el `DELETE` que no tiene es la regla 4
+      # en su forma mas literal: un acceso no se borra, se revoca — si se borrara,
+      # la auditoria no podria decir quien lo tuvo.
+      KAMAYUK_DB_USUARIO: kamayuk_app
+      KAMAYUK_DB_CLAVE: ${KAMAYUK_CLAVE_APP:?falta KAMAYUK_CLAVE_APP, sale del .env de la plataforma}
+      # El prefijo es `kamayuk.implantacion`, y lo declara el
+      # `@ConfigurationProperties` del Java de este sistema. Lo que impide que este
+      # archivo y el descriptor apunten con el prefijo de otro es la guarda de
+      # `infrastructure` que compara cada descriptor con SU Java: C-18 midio lo que
+      # cuesta que no cuadren —`ImplantarMunicipalidad` esta condicionado a
+      # `@ConditionalOnProperty("<prefijo>.ubigeo")`, asi que con el prefijo ajeno
+      # el runner no se registra, el proceso sale con codigo 0 y el Job queda
+      # `Complete` sin haber implantado nada—.
+      KAMAYUK_IMPLANTACION_UBIGEO: ${KAMAYUK_UBIGEO:?falta KAMAYUK_UBIGEO en el .env de la plataforma}
+      KAMAYUK_IMPLANTACION_NOMBRE: ${KAMAYUK_MUNICIPALIDAD:?falta KAMAYUK_MUNICIPALIDAD en el .env de la plataforma}
+      KAMAYUK_IMPLANTACION_TIPO: ${KAMAYUK_TIPO_DE_MUNICIPALIDAD:-DISTRITAL}
+      # La cuenta TIENE que ser la misma que el usuario de Keycloak: es lo unico
+      # que une la fila de `usuario` con la identidad del token (ADR-0005).
+      KAMAYUK_IMPLANTACION_ADMINISTRADOR: ${KAMAYUK_ADMINISTRADOR:?falta KAMAYUK_ADMINISTRADOR (ver identidad/datos-de-implantacion.sh)}
+      KAMAYUK_IMPLANTACION_NOMBREDELADMINISTRADOR: ${KAMAYUK_NOMBRE_DEL_ADMINISTRADOR:-Administrador del sistema}
+      # Por omision `true`, al reves que en el codigo: aqui se levanta una marcha
+      # blanca. Solo se aplica al ALTA.
+      KAMAYUK_IMPLANTACION_ESDEMOSTRACION: ${KAMAYUK_ES_DEMOSTRACION:-true}
+      KAMAYUK_IMPLANTACION_URL: jdbc:postgresql://base:5432/identidad
+      # OWNERCLAVE sin guion bajo: en una variable de entorno el `_` se traduce a
+      # punto, asi que `KAMAYUK_IMPLANTACION_OWNER_CLAVE` seria
+      # `kamayuk.implantacion.owner.clave` y no `owner-clave`.
+      KAMAYUK_IMPLANTACION_OWNERCLAVE: ${KAMAYUK_CLAVE_OWNER:?falta KAMAYUK_CLAVE_OWNER, sale del .env de la plataforma}
+    restart: "no"
+
+  # ── El backend ──────────────────────────────────────────────────────────────
+  #
+  # `identidad-sistema` y no `identidad`: ver la cabecera. El alias de red
+  # `identidad` ya lo tiene Keycloak, y los cinco backends —este incluido— le
+  # piden ahi su JWKS.
+  identidad-sistema:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: aplicacion
+    image: kamayuk-identidad:compose
+    depends_on:
+      identidad-implantacion:
+        condition: service_completed_successfully
+    environment:
+      SPRING_PROFILES_ACTIVE: web
+      KAMAYUK_DB_URL: jdbc:postgresql://base:5432/identidad
+      KAMAYUK_DB_USUARIO: kamayuk_app
+      KAMAYUK_DB_CLAVE: ${KAMAYUK_CLAVE_APP:?falta KAMAYUK_CLAVE_APP, sale del .env de la plataforma}
+      # Sin el emisor la aplicacion se NIEGA a arrancar, y es deliberado: un
+      # backend que atiende sin poder validar un token responde a la sonda, se
+      # declara sano y no atiende a nadie (ADR-0005). Aqui pesa doble: este es el
+      # sistema que decide quien puede hacer que.
+      #
+      # Es el MISMO realm que los otros cuatro: un login para todos (ADR-0030 §3),
+      # y ADR-0039 no toca la autenticacion.
+      KAMAYUK_OIDC_EMISOR: ${KAMAYUK_OIDC_EMISOR:-http://localhost:8180}/realms/sgtm
+      # El emisor es una identidad, no una direccion de red. El navegador llega a
+      # Keycloak por su nombre publico y este contenedor por el interno de la red
+      # del compose; usar el publico para las dos cosas haria que el backend
+      # buscara el JWKS en si mismo y todo token seria invalido por un motivo que
+      # no se parece a su causa.
+      #
+      # `identidad` AQUI ES KEYCLOAK, y es el unico sitio de este archivo donde esa
+      # cadena es correcta. Es tambien la razon de que el servicio de arriba no se
+      # llame asi: con los dos registrando el alias, esta URL resolveria a uno
+      # cualquiera de los dos.
+      KAMAYUK_OIDC_JWKS: http://identidad:8080/realms/sgtm/protocol/openid-connect/certs
+    labels:
+      # Su prefijo, y SOLO el suyo. Reclamar el de otro no falla: se lo queda, y
+      # las peticiones dejan de llegar a su dueno. Es la misma prohibicion (a) que
+      # `descriptor/auditoria.ts` aplica en el cluster.
+      #
+      # El router y el servicio de Traefik llevan el nombre del servicio del
+      # compose por la misma regla de la cabecera: los nombres de router son de
+      # ambito del PROVEEDOR, o sea comunes a los cinco composes y al de la
+      # plataforma, asi que dos proyectos con un router homonimo se pisan.
+      - traefik.enable=true
+      - traefik.http.routers.identidad-sistema.rule=PathPrefix(`/identidad`)
+      - traefik.http.services.identidad-sistema.loadbalancer.server.port=8080
+    healthcheck:
+      # `/actuator/health` y no `/actuator/health/liveness`: aqui esta sonda
+      # alimenta `depends_on: service_healthy`, o sea «esta listo para atender», y
+      # el grupo entero incluye el indicador de la base. En el cluster son tres
+      # sondas distintas y la de VIDA es la del grupo `liveness` a proposito
+      # (C-17, punto 2): matar el proceso no devuelve la base.
+      #
+      # Las tres rutas —esta y las dos del descriptor— tienen que estar entre las
+      # que `SeguridadWeb` permite sin token, y eso lo comprueba
+      # `sondas-contra-la-cadena` leyendo el Java. Con la cadena anterior a C-17
+      # esto contestaba 401 y `curl --fail` dejaba el contenedor `unhealthy` para
+      # siempre, con la aplicacion sana.
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/actuator/health || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
+
+# La red de la plataforma, QUE YA EXISTE. `external: true` es lo que impide que
+# este compose cree una segunda con el mismo nombre y deje a los servicios sin
+# verse: el sintoma seria «Connection refused» a `base`, que se lee como que el
+# motor no esta levantado.
+networks:
+  default:
+    name: kamayuk-plataforma
+    external: true

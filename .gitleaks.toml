@@ -1,0 +1,36 @@
+# Escaneo de secretos sobre todo el arbol (INF-06, ADR-0011 §3).
+#
+# Extiende el conjunto de reglas por omision de gitleaks —claves privadas, tokens de los
+# proveedores mas comunes, patrones de alta entropia— y **no anade ninguna exclusion**.
+#
+# ## Por que aqui NO hay `allowlist`, y es una afirmacion
+#
+# `normativa` arrastra una que apunta a `infra/verificaciones/secretos/muestras/`, un directorio
+# que en aquel repositorio **no existe**: la exclusion se copio del monolito con el archivo. Una
+# entrada que no exime nada no es inocua —sigue eximiendo a lo que manana nazca con ese nombre— y
+# es el mismo defecto que `infrastructure`#27 midio en las listas de `ConfiguracionDeLasVerificaciones`.
+# Aqui no se copia: este arbol no tiene ni una clave de mentira, asi que la lista esta vacia. El
+# dia que haya una muestra que el escaneo tenga que detectar, entra aqui **con la ruta de verdad**.
+#
+# ## Y NO LO CORRE NADIE TODAVIA, que hay que decirlo
+#
+# `normativa` dice en su cabecera que lo corre `.github/workflows/secretos.yml` «en cada PR y en
+# cada integracion a `main`», y **ese archivo no existe en ninguno de los cinco repositorios**. Una
+# verificacion escrita que no ejecuta nadie es el modo de fallo de `verificar-cuadros.mjs` (#188) y
+# de `verificar-rotacion.sh` (#435), y este proyecto ya lo encontro dos veces: la comprobacion
+# existe, se cita, y lleva meses sin correr.
+#
+# Asi que se dice lo que hay: este repositorio trae **cuatro** flujos —`backend.yml`,
+# `infraestructura.yml`, `registro.yml` y `publicar-imagenes.yml`— y **ninguno invoca gitleaks**.
+# Hoy esta configuracion sirve para correrlo a mano y para el escaneo que GitHub hace por su
+# cuenta:
+#
+#     gitleaks detect --no-git --config .gitleaks.toml --redact
+#
+# Engancharlo a CI es un issue aparte, y cuando llegue tendra que traer **su muestra**: sin una
+# clave de mentira que el escaneo detecte, un flujo en verde no distingue «no hay secretos» de «no
+# se miro».
+title = "kamayuk identidad — gitleaks"
+
+[extend]
+useDefault = true
