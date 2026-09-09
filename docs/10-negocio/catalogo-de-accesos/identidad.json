@@ -28,6 +28,10 @@
         {
           "codigo": "permisos",
           "nombre": "Permisos y niveles de accesibilidad"
+        },
+        {
+          "codigo": "eventos",
+          "nombre": "Buzon de eventos de identidad"
         }
       ]
     }

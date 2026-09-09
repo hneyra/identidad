@@ -68,14 +68,33 @@ tasks.test {
             })
         .withPathSensitivity(PathSensitivity.RELATIVE)
 
-    // NO HAY ENTRADA DE CONTRATOS, y es lo unico que este bloque tiene de menos respecto de
-    // `normativa`: alli `ContratoConRentasTest` y `ContratoConCatastroTest` leen
-    // `../../<consumidor>/docs/50-api/contratos-que-consume/normativa.json` y hubo que declararlos
-    // como entrada, porque sin eso editar un contrato dejaba `test` en UP-TO-DATE y la prueba
-    // **no corria** (medido en C-2: `BUILD SUCCESSFUL` con la tarea saltada). Aqui no hay ninguna
-    // de las dos porque este sistema todavia no publica ninguna operacion, asi que no hay contrato
-    // que ningun consumidor pueda comprometer. El dia que la etapa 2 publique la primera, esa
-    // entrada tiene que volver con ella: es la leccion de #192 punto 2 y se pierde por omision.
+    // LOS CONTRATOS DE LOS CONSUMIDORES VIVEN EN OTROS CLONES, y sin declararlos esta tarea se
+    // queda UP-TO-DATE cuando cambian. Desde la etapa 3 este sistema publica dos operaciones —el
+    // buzon servido— y los cuatro sistemas van a comprometer lo que le piden en
+    // `../../<consumidor>/docs/50-api/contratos-que-consume/identidad.json`.
+    //
+    // Se declara el DIRECTORIO entero y no ese archivo, y no es lo mismo: hoy el archivo NO EXISTE
+    // —lo publica el ingestor de cada consumidor, que es de la etapa 4— y lo que
+    // `ContratosDeLosConsumidoresTest` afirma es justamente que sigue sin existir, mas el contraste
+    // de que los contratos que esos clones YA publican para otros proveedores se siguen
+    // encontrando. Con solo el archivo declarado, ninguna de las dos direcciones se veria: ni que
+    // aparezca —porque un archivo que no existe no tiene contenido que cambiar— ni que el
+    // directorio se mueva.
+    //
+    // Sin esta entrada, publicar el contrato en un clon hermano dejaria `test` UP-TO-DATE y la
+    // guarda que pide quitar el `@Disabled` **no correria**: `BUILD SUCCESSFUL` con la tarea
+    // saltada, que es la leccion de #192 punto 2 medida en C-2 y otra vez en `rentas`#53.
+    //
+    // `optional()` porque el clon hermano puede no estar: si falta, la prueba falla con su propio
+    // mensaje —nombrando el clon y el `git clone`—, que dice mas que un fallo de configuracion de
+    // Gradle.
+    listOf("rentas", "catastro", "normativa", "caja").forEach { consumidor ->
+        inputs
+            .files(rootProject.file("../../$consumidor/docs/50-api/contratos-que-consume"))
+            .optional()
+            .withPropertyName("contratosQueConsume-$consumidor")
+            .withPathSensitivity(PathSensitivity.RELATIVE)
+    }
 }
 
 // Nombre fijo del artefacto ejecutable. La imagen lo copia por nombre y no por comodin:

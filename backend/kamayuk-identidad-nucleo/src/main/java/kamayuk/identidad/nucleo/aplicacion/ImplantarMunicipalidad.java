@@ -78,14 +78,30 @@ import org.springframework.stereotype.Component;
  * INSERT}, en una conexion que se abre y se cierra. Todo lo demas va por el camino normal de la
  * aplicacion, como {@code kamayuk_app} y con su auditoria.
  *
- * <h2>Un grupo, no dos</h2>
+ * <h2>Dos grupos, y el segundo nace SIN MIEMBROS a proposito</h2>
  *
- * <p>{@code rentas} crea dos —administracion y {@code Seguridad}—; aqui solo el primero. El segundo
- * es la plantilla de quien administra el acceso de los usuarios <b>sin</b> poder administrar el
- * resto, y esa delegacion es una decision de la municipalidad: crearla vacia desde el despliegue
- * seria decidir por ella. El grupo de administracion recibe los siete privilegios sobre las
- * <b>160</b> opciones de los cinco catalogos, que es lo que hace que el primer dia haya alguien que
- * pueda configurar todo lo demas.
+ * <p>{@code rentas} crea dos —administracion y {@code Seguridad}—; aqui el de administracion y,
+ * desde la <b>etapa 3</b>, «Consumidores del buzon». El de {@code rentas} que no se copia es la
+ * plantilla de quien administra el acceso de los usuarios <b>sin</b> poder administrar el resto, y
+ * esa delegacion es una decision de la municipalidad: crearla vacia desde el despliegue seria
+ * decidir por ella.
+ *
+ * <p>El grupo de administracion recibe los siete privilegios sobre las <b>161</b> opciones de los
+ * cinco catalogos, que es lo que hace que el primer dia haya alguien que pueda configurar todo lo
+ * demas.
+ *
+ * <p>«Consumidores del buzon» recibe <b>una sola opcion</b>, {@code (identidad, eventos)}, y solo
+ * {@code LECTURA} y {@code REGISTRO} — que son exactamente los dos privilegios que {@code
+ * EventosController} exige. No recibe {@code ELIMINACION} ni {@code ESPECIAL} porque no hay nada
+ * que borrar: el buzon es inmutable y su acuse tambien.
+ *
+ * <p><b>Y nace sin ningun miembro, que es lo que hay que saber</b>: afiliar a el las cuatro cuentas
+ * de servicio —{@code service-account-kamayuk-<sistema>-servicio-<ubigeo>}— es de la <b>etapa 4</b>
+ * y del despliegue, porque hoy ninguna de las cuatro tiene fila en {@code usuario}. Se crea igual,
+ * y no se deja para entonces, por dos motivos: el grupo con su permiso es lo unico de esa
+ * afiliacion que este repositorio puede decidir —a quien se afilia lo decide quien despliegue—, y
+ * un grupo vacio con el permiso puesto convierte esa etapa en un {@code POST} de afiliacion, en vez
+ * de en «alguien tiene que acordarse de crear un grupo y darle exactamente esta opcion y no otra».
  *
  * <h2>Idempotente, entera</h2>
  *
@@ -104,6 +120,16 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
     public static final String GRUPO_DE_ADMINISTRACION = "Administracion del sistema";
 
     /**
+     * El grupo del que colgara el permiso de las cuatro cuentas de servicio (etapa 3).
+     *
+     * <p>Nace <b>vacio</b>: ver el epigrafe de la cabecera.
+     */
+    public static final String GRUPO_DE_CONSUMIDORES = "Consumidores del buzon";
+
+    /** La opcion con la que se lee y se acusa el buzon, y de que sistema es. */
+    public static final String ACCESO_DEL_BUZON = "eventos";
+
+    /**
      * La opcion que gobierna la propia administracion de permisos, y de que sistema es.
      *
      * <p>Se fija <b>la primera</b>: ver el epigrafe del orden en la cabecera de esta clase.
@@ -112,6 +138,16 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
 
     /** Los siete, que es lo que un administrador tiene sobre todo. */
     private static final Set<Privilegio> LOS_SIETE = EnumSet.allOf(Privilegio.class);
+
+    /**
+     * Los dos que {@code EventosController} exige, y ninguno mas.
+     *
+     * <p>{@code LECTURA} para servir la cola y {@code REGISTRO} para acusar. No hay {@code
+     * ELIMINACION} porque no hay nada que borrar —el buzon es inmutable y su acuse tambien— ni
+     * {@code ESPECIAL}, que es lo que en este producto abre las operaciones fuera de lo corriente.
+     */
+    private static final Set<Privilegio> LEER_Y_ACUSAR =
+            EnumSet.of(Privilegio.LECTURA, Privilegio.REGISTRO);
 
     private final RegistroDeMunicipalidadesJdbc registro;
     private final SembradorDelCatalogo sembrador;
@@ -153,6 +189,7 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
 
             int nuevos = sembrador.sembrar(catalogo, porQue);
             int otorgados = darDeAltaAlAdministrador(catalogo, porQue);
+            grupoDeConsumidoresDelBuzon(porQue);
 
             // El regimen se registra aunque sea una sola palabra: es lo unico del resultado que no
             // se puede comprobar mirando pantallas. Una instalacion que se creia de demostracion y
@@ -224,6 +261,39 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
     private static boolean esLaDeAdministracion(CatalogoUnido.Opcion opcion) {
         return SistemasDelProducto.IDENTIDAD.equals(opcion.sistema())
                 && ACCESO_DE_ADMINISTRACION.equals(opcion.codigo());
+    }
+
+    /**
+     * El grupo desde el que los cuatro sistemas leeran el buzon, con su unica opcion y sin
+     * miembros.
+     *
+     * <p>Va <b>despues</b> del administrador y no antes, y el orden no es libre: {@code
+     * AdministrarPermisos} comprueba tras cada escritura que quede alguien capaz de administrar
+     * permisos, y en una municipalidad recien creada eso solo es cierto una vez que el grupo de
+     * administracion tiene su {@code (identidad, permisos)}. Puesto antes, este {@code
+     * fijarParaGrupo} seria el primero de la municipalidad y se rechazaria con un 409 que hablaria
+     * de lo contrario de lo que pasa.
+     */
+    private void grupoDeConsumidoresDelBuzon(Observacion porQue) {
+        Grupo grupo;
+        try {
+            grupo =
+                    administrar.registrarGrupo(
+                            Grupo.nuevo(
+                                    GRUPO_DE_CONSUMIDORES,
+                                    "Creado por la implantacion: desde aqui los cuatro sistemas"
+                                            + " leen y acusan el buzon de identidad. Sus miembros"
+                                            + " son cuentas de servicio, no personas"),
+                            porQue);
+        } catch (AdministrarSeguridad.GrupoRepetido yaEstaba) {
+            grupo = administrar.grupoPorNombre(GRUPO_DE_CONSUMIDORES).orElseThrow(() -> yaEstaba);
+        }
+        permisos.fijarParaGrupo(
+                exigirIdentificador(grupo.id(), "grupo"),
+                SistemasDelProducto.IDENTIDAD,
+                ACCESO_DEL_BUZON,
+                LEER_Y_ACUSAR,
+                porQue);
     }
 
     /**

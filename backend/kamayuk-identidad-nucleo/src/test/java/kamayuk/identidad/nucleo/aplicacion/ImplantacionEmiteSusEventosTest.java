@@ -74,11 +74,15 @@ class ImplantacionEmiteSusEventosTest {
         long opciones = catalogo.opciones().size();
         assertThat(arnes.contar(contarEventos(TipoDeEventoDeIdentidad.PERMISO_FIJADO)))
                 .as(
-                        "un PERMISO_FIJADO por cada opcion de los CINCO catalogos: son %d, y no las"
-                                + " seis de este sistema. Lo que esta base guarda es a quien se le"
-                                + " concede cada opcion de todos (ADR-0039)",
-                        opciones)
-                .isEqualTo(opciones);
+                        "un PERMISO_FIJADO por cada opcion de los CINCO catalogos —son %d, y no las"
+                                + " siete de este sistema: lo que esta base guarda es a quien se le"
+                                + " concede cada opcion de todos (ADR-0039)— MAS UNO, el de"
+                                + " «%s» sobre (identidad, eventos). Ese uno es de la etapa 3 y"
+                                + " tiene que emitirse igual: el dia que ese grupo tenga miembros,"
+                                + " los otros cuatro sistemas necesitan conocerlo para autorizar a"
+                                + " las cuentas de servicio contra su propia copia",
+                        opciones, ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES)
+                .isEqualTo(opciones + 1);
 
         assertThat(arnes.contar("SELECT count(*) FROM acceso"))
                 .as("y una fila de `acceso` por cada una, con su sistema")
@@ -99,6 +103,36 @@ class ImplantacionEmiteSusEventosTest {
                                 + " la guarda del ultimo administrador rechazaria el segundo permiso"
                                 + " con un 409 y la implantacion entera se desharia")
                 .isEqualTo(1);
+
+        // El grupo de la etapa 3 existe, con SU opcion y sin miembros. Las tres cosas: sin la
+        // primera nadie podria consumir el buzon; sin la segunda —si recibiera los siete sobre
+        // todo, como el de administracion— seria un segundo administrador de la municipalidad
+        // creado por el despliegue; y la tercera es lo que dice que afiliar las cuatro cuentas de
+        // servicio es de la etapa 4 y no un olvido de esta.
+        assertThat(
+                        arnes.filas(
+                                "SELECT a.sistema || ':' || a.codigo FROM permiso p"
+                                        + " JOIN acceso a ON a.id = p.acceso_id"
+                                        + " JOIN grupo g ON g.id = p.grupo_id"
+                                        + " WHERE g.nombre = '"
+                                        + ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES
+                                        + "' ORDER BY 1"))
+                .as(
+                        "«%s» recibe UNA opcion, la del buzon",
+                        ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES)
+                .containsExactly("identidad:eventos");
+
+        assertThat(
+                        arnes.contar(
+                                "SELECT count(*) FROM miembro m JOIN grupo g ON g.id = m.grupo_id"
+                                        + " WHERE g.nombre = '"
+                                        + ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES
+                                        + "'"))
+                .as(
+                        "y nace SIN MIEMBROS: afiliar las cuatro cuentas de servicio es de la etapa"
+                                + " 4 y del despliegue, porque hoy ninguna tiene fila en `usuario`."
+                                + " Un miembro aqui hoy seria una cuenta que no existe")
+                .isZero();
 
         segundoDespliegue();
     }
@@ -124,8 +158,12 @@ class ImplantacionEmiteSusEventosTest {
                 .as("ni un segundo administrador")
                 .isEqualTo(1);
         assertThat(arnes.contar("SELECT count(*) FROM grupo"))
-                .as("ni un segundo grupo de administracion")
-                .isEqualTo(1);
+                .as(
+                        "ni un segundo grupo: siguen siendo los DOS que la implantacion crea, «%s»"
+                                + " y «%s»",
+                        ImplantarMunicipalidad.GRUPO_DE_ADMINISTRACION,
+                        ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES)
+                .isEqualTo(2);
 
         // Los eventos SI crecen, y es correcto que crezcan: fijar la misma matriz otra vez es OTRO
         // acto, con su observacion y su fila de auditoria (por eso el `evento_id` es aleatorio y no

@@ -76,6 +76,7 @@ public final class DatosDePrueba {
             sembrarSeguridad(app, muni, sufijo);
             sembrarDocumento(app, muni, sufijo);
             sembrarEventoDelBuzon(app, muni, sufijo);
+            sembrarAcuseDelBuzon(app, muni, sufijo);
 
             app.commit();
         }
@@ -184,10 +185,44 @@ public final class DatosDePrueba {
                 app,
                 "INSERT INTO identidad_evento (municipalidad_id, evento_id, tipo, sujeto_id,"
                         + " cuerpo, huella, creado_en)"
-                        + " VALUES (?, gen_random_uuid(), 'GRUPO_DADO_DE_ALTA', 1,"
+                        + " VALUES (?, ?::uuid, 'GRUPO_DADO_DE_ALTA', 1,"
                         + "         CAST(? AS jsonb), repeat('e', 64), now())",
                 muni,
+                eventoDe(muni),
                 "{\"grupoId\":1,\"nombre\":\"Grupo " + sufijo + "\"}");
+    }
+
+    /**
+     * Un acuse de ese evento (`V3`), para la misma municipalidad.
+     *
+     * <p>Se siembra por lo mismo que todo lo demas de aqui: sin una fila de B, «con el contexto de
+     * A no se ve ninguna fila de B» es cierto sobre la tabla vacia. Y hay una razon de mas para
+     * esta: es la unica tabla del esquema cuya clave lleva un discriminante que <b>no</b> es el
+     * inquilino —el consumidor—, asi que un descuido en su politica no se veria en ninguna otra.
+     *
+     * <p>Acusa {@code rentas} y no los cuatro: una fila basta para que la comprobacion tenga
+     * sujeto, y sembrar los cuatro no anadiria ninguna direccion que medir.
+     */
+    private static void sembrarAcuseDelBuzon(Connection app, long muni, String sufijo)
+            throws SQLException {
+        ejecutar(
+                app,
+                "INSERT INTO identidad_evento_acuse (municipalidad_id, consumidor, evento_id,"
+                        + " acusado_en) VALUES (?, 'rentas', ?::uuid, now())",
+                muni,
+                eventoDe(muni));
+    }
+
+    /**
+     * El {@code evento_id} de la fila del buzon de esa municipalidad, derivado y no aleatorio.
+     *
+     * <p>Se necesita <b>dos veces</b> —al emitir y al acusar— y la foranea de {@code V3} exige que
+     * sean el mismo. Derivarlo del identificador de la municipalidad evita tener que devolverlo del
+     * primer {@code INSERT} y, sobre todo, hace que las dos siembras no puedan discrepar por un
+     * descuido: si alguna cambiara, la foranea lo dice en el acto.
+     */
+    private static String eventoDe(long muni) {
+        return String.format("00000000-0000-4000-8000-%012d", muni);
     }
 
     private static void sembrarDocumento(Connection app, long muni, String sufijo)

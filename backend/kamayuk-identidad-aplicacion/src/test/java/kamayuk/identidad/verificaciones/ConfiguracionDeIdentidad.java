@@ -247,8 +247,15 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      * que se vea: sin la entrada, el reparto la da por «replicada» —{@code getOrDefault(tabla,
      * SISTEMA_REPLICADO)}— y el escaner de la regla 11 <b>deja de mirarla</b>, en verde (la leccion
      * de R-N).
+     *
+     * <p><b>Y desde la etapa 3, {@code identidad_evento_acuse}</b>, por el mismo motivo y con una
+     * vuelta de tuerca: no solo ningun otro sistema la lee, es que <b>ninguno puede saber lo que
+     * dice</b> — lo que hay ahi es lo que cada uno de los cuatro ya aplico, y se pregunta pidiendo
+     * el buzon, no leyendo la tabla. Un {@code JOIN} contra ella desde otro sistema es siempre el
+     * defecto.
      */
-    private static final Set<String> DE_IDENTIDAD = Set.of("identidad_evento");
+    private static final Set<String> DE_IDENTIDAD =
+            Set.of("identidad_evento", "identidad_evento_acuse");
 
     private static final Set<String> REPLICADAS =
             Set.of(
@@ -346,6 +353,11 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
                 // no recibiran nunca y del que no queda rastro de que se emitio: la copia del
                 // vecino se queda desatrasada y nada dice por que.
                 "identidad_evento",
+                // Y su acuse (`V3`). Borrar un acuse es volver a servirle a un consumidor un
+                // evento que ya aplico: la entrega es al menos una vez y el receptor deduplica,
+                // asi que no rompe nada visible — y por eso mismo nadie se enteraria de que el
+                // registro de lo entregado deja de ser cierto.
+                "identidad_evento_acuse",
                 "miembro",
                 "modulo_sistema",
                 "municipalidad",
@@ -356,7 +368,7 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
     }
 
     /**
-     * Ademas de no borrarse, no se actualiza: <b>una sola</b>.
+     * Ademas de no borrarse, no se actualiza: <b>tres</b>.
      *
      * <p>{@code auditoria}, por ADR-0008 —quien puede modificarla puede borrar su rastro—.
      *
@@ -367,6 +379,11 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      * ella solo puede ser una cosa: reescribir un hecho ya publicado. El {@code GRANT} de {@code
      * V2} tampoco se lo da, y son dos guardas independientes: el motor lo niega con un 42501 que no
      * dice cual de las dos fue, y el escaner lo niega en el build nombrando archivo y linea (#435).
+     *
+     * <p><b>Y desde la etapa 3, {@code identidad_evento_acuse}</b>, que es la otra mitad de lo
+     * mismo: un acuse o esta o no esta, y ninguna de sus cuatro columnas cambia despues de
+     * escribirse. Un {@code UPDATE} ahi solo podria ser mover un acuse de un consumidor a otro, que
+     * es exactamente lo que la clave primaria existe para impedir.
      *
      * <p><b>Las otras doce NO estan, y no es un olvido.</b> Las siete de la copia local reciben un
      * {@code UPDATE} legitimo y es el acto que este sistema existe para ejecutar: dar de baja a un
@@ -380,7 +397,36 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      */
     @Override
     public Set<String> tablasInmutables() {
-        return Set.of("auditoria", "identidad_evento");
+        return Set.of("auditoria", "identidad_evento", "identidad_evento_acuse");
+    }
+
+    /**
+     * La unica escritura transaccional de este sistema que no recibe una {@code Observacion}.
+     *
+     * <p><b>El acuse del buzon</b> (etapa 3). La regla 10 existe porque «el que» lo reconstruye
+     * cualquier sistema y «el por que» solo lo sabe quien cambio el dato, en el momento de
+     * cambiarlo; aqui no hay ningun dato del padron que cambie y no hay ninguna persona que lo
+     * cambie: lo que se escribe es un <b>acuse de recibo</b> —«el sistema {@code caja} ya aplico
+     * estos eventos»— y quien lo manda es un proceso por lotes con una cuenta de servicio, sin
+     * ninguna peticion de usuario detras.
+     *
+     * <p>Exigir una observacion aqui produciria exactamente lo que el javadoc de la regla advierte:
+     * una cadena fija escrita por el cliente en cada vuelta, que no dice nada y que ademas seria lo
+     * primero que alguien copiaria al escribir la siguiente escritura sin usuario.
+     *
+     * <p>Y no se queda sin rastro, que es lo que la regla protege: lo que un acuse deja escrito
+     * —quien acuso, que evento y cuando— <b>es</b> el registro completo del acto, en las cuatro
+     * columnas de {@code identidad_evento_acuse}. No hay un «por que» que dar: el motivo de acusar
+     * es haber aplicado.
+     *
+     * <p><b>#27: censo cerrado.</b> Una entrada que no case con ningun metodo del arbol exime a
+     * quien nazca manana con ese nombre, asi que {@code SujetosDeLaConfiguracion} la pone en rojo.
+     */
+    @Override
+    public Set<String> escriturasSinUsuarioQueObserve() {
+        return Set.of(
+                ".nucleo.aplicacion.EntregaDeEventos.acusar("
+                        + "kamayuk.identidad.nucleo.dominio.Consumidor, java.util.List)");
     }
 
     /** Ninguna: aqui no se compone ningun area a mano, porque no hay predios que medir (#607). */
