@@ -141,13 +141,34 @@ function urlDeLaBase(e: EntornoDelDescriptor): string {
  * cabe** (#1, D-25), asi que este sistema entra empeorando una brecha que ya estaba declarada.
  */
 const RECURSOS_DE_ARRANQUE = {
-  requests: { cpu: "50m", memory: "256Mi" },
+  requests: { cpu: "50m", memory: "128Mi" },
   limits: { cpu: "1", memory: "1Gi" },
 };
 
-/** Lo que pide y lo que puede gastar. Sin esto, el planificador no reserva nada. */
+/**
+ * Lo que pide y lo que puede gastar. Sin esto, el planificador no reserva nada.
+ *
+ * ## Por que pide la MITAD que los otros cuatro (identidad#1 AC-8)
+ *
+ * Los cuatro sistemas piden 512Mi para el proceso web y 256Mi por Job, y con eso este sistema
+ * anadia 1 024Mi al pico de arranque de cada ambiente. Medido en el PR hermano de
+ * `infrastructure` (#54): `stg` cabia con **96Mi** de margen y con el quinto sistema deja de
+ * caber por 928Mi. La direccion decidio bajar la demanda de ESTE sistema y no la de los otros
+ * cuatro: `identidad` guarda ocho tablas de autorizacion y no calcula nada —ni un padron, ni
+ * una geometria, ni una determinacion—, asi que es el que menos pierde con un `request` bajo.
+ *
+ * Lo que se baja es solo el `request` —lo que el planificador RESERVA—; los `limits` no se
+ * tocan, asi que el proceso puede seguir usando hasta 1Gi si el nodo lo tiene libre. Lo que
+ * cuesta, dicho: con 256Mi reservados y un nodo apretado, este pod es el primero al que le
+ * falta memoria bajo carga. Es una cifra sin medir contra el proceso de verdad; el dia que se
+ * mida, se sustituye.
+ *
+ * Y NO cierra el hueco de `stg` por si sola: los 512Mi que ahorra (256 del web y 128 por
+ * cada uno de los dos Jobs) dejan 416Mi por cubrir, que es lo que el nodo real de `stg` tiene
+ * que aportar cuando se mida (su `Pulumi.stg.yaml` declara una cota inferior sin medir).
+ */
 const RECURSOS = {
-  requests: { cpu: "100m", memory: "512Mi" },
+  requests: { cpu: "100m", memory: "256Mi" },
   limits: { cpu: "1", memory: "1Gi" },
 };
 
