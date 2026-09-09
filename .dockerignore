@@ -1,0 +1,24 @@
+# Lo que NO viaja al contexto de la imagen.
+#
+# Sin esto el contexto son cientos de megabytes, y casi todo es `.git`. No es solo tiempo: cada
+# archivo del contexto entra en la huella de la capa, asi que un `git gc` cambiaria la huella y
+# volveria a construir la imagen entera sin que ninguna fuente hubiera cambiado.
+#
+# El contexto de `docker build` es la RAIZ del repositorio y no `backend/` —lo dicen el
+# `Dockerfile`, el compose y `publicar-imagenes.yml`—, asi que este archivo tiene que vivir aqui:
+# desde `backend/` no se aplicaria.
+.git
+.github
+.idea
+.claude
+**/build/
+**/node_modules/
+**/.gradle/
+#
+# `docs/`, `despliegue/` e `infrastructure/` se excluyen porque **ningun `COPY` del Dockerfile los
+# lee**: comprobado sobre sus dos etapas, todo lo que copia sale de `backend/`. Excluir algo que se
+# copiara no daria un error de contexto — daria un `COPY` que se salta con NO-SOURCE y una imagen a
+# la que le falta un archivo, compilando en verde.
+docs/
+despliegue/
+infrastructure/

@@ -1,0 +1,23 @@
+# Node: el descriptor de infraestructura
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Gradle: el esquema, las barreras y la aplicacion
+.gradle/
+build/
+*/build/
+backend/**/build/
+backend/.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Sistema
+.DS_Store
+
+# Secretos: nunca, y `.gitleaks.toml` vigila que no se cuelen
+*.local.*
+.env

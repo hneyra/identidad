@@ -1,0 +1,76 @@
+name: Infraestructura
+
+# Verifica el DESCRIPTOR de despliegue de este sistema.
+#
+# `yarn verificar` no necesita Pulumi, ni token, ni cluster. Es deliberado, y es lo que ADR-0011
+# compro: la parte que puede equivocarse a diario —un limite que falta, una sonda sin plazo, una
+# ruta fuera del prefijo, la etiqueta `componente` que colisiona con la de Keycloak (AC-7)— se
+# detecta en la maquina de quien lo escribe y en el PR de cualquiera.
+#
+# Lo que este flujo NO puede comprobar, y se dice en vez de suponerse: la composicion del
+# ambiente entero y las cinco prohibiciones las hace `infrastructure`, que es quien tiene los seis
+# clones. Aqui se verifica lo que este repositorio decide y solo eso.
+
+on:
+  push:
+    branches: [main]
+    paths: ["infrastructure/**", ".github/workflows/infraestructura.yml"]
+  pull_request:
+    paths: ["infrastructure/**", ".github/workflows/infraestructura.yml"]
+
+# Sin permisos de escritura: este trabajo lee y verifica, no publica nada.
+permissions:
+  contents: read
+
+jobs:
+  descriptor:
+    name: El descriptor cumple el contrato
+    runs-on: ubuntu-latest
+    # Un colgado no consume cuota sin limite: la leccion de `observabilidad-alertas`.
+    timeout-minutes: 10
+    steps:
+      # ESTE repositorio, y **no** en la raiz del espacio de trabajo (C-9a).
+      #
+      # `infrastructure/package.json` declara `@kamayuk/infra-contrato` como
+      # `link:../../infrastructure/infra/contrato`: un hermano. Eso lo resuelve yarn al
+      # instalar, contra el disco, y **ninguna variable de entorno lo redirige** — asi que
+      # aqui la disposicion de hermanos no es una preferencia, esta escrita en el
+      # `package.json`.
+      #
+      # En CI no se puede reproducir clonando hacia arriba: `actions/checkout` se NIEGA a
+      # escribir fuera de `GITHUB_WORKSPACE` —«Repository path
+      # '/home/runner/work/infrastructure/sgtm' is not under
+      # '/home/runner/work/infrastructure/infrastructure'», que es como se descubrio—. Asi
+      # que lo que se mueve es el ANFITRION: este repositorio se clona en
+      # `<espacio>/identidad`, el hermano en `<espacio>/infrastructure`, y el `link:`
+      # resuelve exactamente igual que en la maquina de quien lo escribe.
+      #
+      # `path: infrastructure` a secas **no vale** para este repositorio: chocaria con el
+      # directorio `infrastructure/` que ya tiene dentro.
+      - uses: actions/checkout@v4
+        with:
+          path: identidad
+
+      # El contrato vive en `infrastructure`, y la dependencia es `link:` a un repositorio
+      # hermano. En CI ese hermano no esta, asi que se clona al lado — con la MISMA estructura
+      # de directorios que en local, o el `link:` no resuelve.
+      - name: Traer el contrato de `infrastructure`
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/infrastructure
+          path: infrastructure
+          # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al
+          # suyo: sin esto, `Not Found` al pedir la rama por omision.
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar
+        working-directory: identidad/infrastructure
+        run: yarn install --frozen-lockfile
+
+      - name: Verificar el descriptor
+        working-directory: identidad/infrastructure
+        run: yarn verificar
