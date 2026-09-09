@@ -18,6 +18,7 @@ import kamayuk.identidad.dominio.MunicipalidadId;
 import kamayuk.identidad.esquema.BaseDeDatosDePrueba;
 import kamayuk.identidad.nucleo.aplicacion.AdministrarPermisos;
 import kamayuk.identidad.nucleo.aplicacion.AdministrarSeguridad;
+import kamayuk.identidad.nucleo.aplicacion.EntregaDeEventos;
 import kamayuk.identidad.nucleo.aplicacion.SembradorDelCatalogo;
 import kamayuk.identidad.nucleo.dominio.BuzonDeIdentidad;
 import kamayuk.identidad.nucleo.infraestructura.AdministracionRepositoryJdbc;
@@ -62,6 +63,7 @@ public final class ArnesDeAdministracion implements AutoCloseable {
     private final AdministrarPermisos permisos;
     private final SembradorDelCatalogo sembrador;
     private final BuzonDeIdentidad buzon;
+    private final EntregaDeEventos entrega;
 
     private ArnesDeAdministracion(BaseDeDatosDePrueba base) {
         this.base = base;
@@ -100,6 +102,11 @@ public final class ArnesDeAdministracion implements AutoCloseable {
                                 RELOJ),
                         gestor);
         this.sembrador = envolver(new SembradorDelCatalogo(jdbc, auditoria, RELOJ), gestor);
+
+        // La etapa 3 sirve el buzon, y su caso de uso SI declara transaccion: sin envolverlo, la
+        // consulta correria sin `SET LOCAL` y la politica RLS no devolveria vacio — reventaria con
+        // «invalid input syntax for type bigint: ""». Es lo que su propio javadoc explica.
+        this.entrega = envolver(new EntregaDeEventos(buzon), gestor);
     }
 
     public static ArnesDeAdministracion provisionar() throws SQLException, IOException {
@@ -129,6 +136,11 @@ public final class ArnesDeAdministracion implements AutoCloseable {
 
     public BuzonDeIdentidad buzon() {
         return buzon;
+    }
+
+    /** El caso de uso que sirve el buzon (etapa 3), con su interceptor de transacciones. */
+    public EntregaDeEventos entrega() {
+        return entrega;
     }
 
     public JdbcClient jdbc() {

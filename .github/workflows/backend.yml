@@ -15,12 +15,19 @@
 # por eso este workflow hace checkout de DOS repositorios. Sin el segundo, `settings.gradle.kts` se
 # para diciendo que falta, que es mejor que un fallo de Gradle sobre un directorio inexistente.
 #
-# SIN LOS `sparse-checkout` DE CONTRATOS que llevan `normativa` y `caja`, y no es un olvido: esos
-# clones traen el contrato que un consumidor publica de lo que le pide a ese sistema (P6,
-# ADR-0030 §4), y **hoy nadie consume nada de `identidad` por HTTP**. Cada sistema sigue
-# autorizando contra su copia local (ADR-0039), asi que no hay contrato de consumidor que
-# comprobar. Entran cuando la etapa 3 mude las escrituras de administracion — y ese dia entra
-# tambien la prueba que los lee, no solo el checkout.
+# Y DESDE LA ETAPA 3 TRAE ADEMAS LOS CUATRO CLONES DE LOS CONSUMIDORES, con `sparse-checkout` de
+# un solo directorio: lo unico que hace falta de ellos es
+# `docs/50-api/contratos-que-consume/`, y traer cuatro repositorios enteros por unos kilobytes
+# seria pagar el clon de otro sistema en cada corrida.
+#
+# **Y hacen falta AUNQUE el archivo que se busca no exista todavia**, que es lo contrario de lo que
+# uno supondria. Este sistema ya publica dos operaciones —el buzon servido— y sus cuatro pruebas de
+# contrato estan escritas y desactivadas: lo que las reactiva es
+# `ContratosDeLosConsumidoresTest`, que afirma que
+# `<consumidor>/docs/50-api/contratos-que-consume/identidad.json` **sigue sin existir**. Sin los
+# clones, esa afirmacion seria cierta porque no existe el repositorio entero: la guarda se
+# cumpliria sola para siempre y el dia que la etapa 4 publicara el contrato nadie lo notaria. Por
+# eso falla nombrando el clon que falta, y por eso el checkout entra ahora y no con la etapa 4.
 
 name: Backend
 
@@ -64,6 +71,50 @@ jobs:
           # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al suyo:
           # sin esto, `Not Found` al pedir la rama por omision.
           token: ${{ secrets.GH_CLONE_KEY || github.token }}
+
+      - name: El contrato que publica «rentas» de lo que le pide a `identidad`
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/rentas
+          path: rentas
+          # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al suyo:
+          # sin esto, `Not Found` al pedir la rama por omision.
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+          sparse-checkout: docs/50-api/contratos-que-consume
+          sparse-checkout-cone-mode: false
+
+      - name: El contrato que publica «catastro» de lo que le pide a `identidad`
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/catastro
+          path: catastro
+          # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al suyo:
+          # sin esto, `Not Found` al pedir la rama por omision.
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+          sparse-checkout: docs/50-api/contratos-que-consume
+          sparse-checkout-cone-mode: false
+
+      - name: El contrato que publica «normativa» de lo que le pide a `identidad`
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/normativa
+          path: normativa
+          # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al suyo:
+          # sin esto, `Not Found` al pedir la rama por omision.
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+          sparse-checkout: docs/50-api/contratos-que-consume
+          sparse-checkout-cone-mode: false
+
+      - name: El contrato que publica «caja» de lo que le pide a `identidad`
+        uses: actions/checkout@v4
+        with:
+          repository: hneyra/caja
+          path: caja
+          # Los repositorios del producto son PRIVADOS y el `GITHUB_TOKEN` solo alcanza al suyo:
+          # sin esto, `Not Found` al pedir la rama por omision.
+          token: ${{ secrets.GH_CLONE_KEY || github.token }}
+          sparse-checkout: docs/50-api/contratos-que-consume
+          sparse-checkout-cone-mode: false
 
       # ADR-0001 fija Java 25. Se comprueba en vez de suponerse: si alguien cambiara la propiedad,
       # CI verificaria en silencio una version de Java distinta de la que se despliega.

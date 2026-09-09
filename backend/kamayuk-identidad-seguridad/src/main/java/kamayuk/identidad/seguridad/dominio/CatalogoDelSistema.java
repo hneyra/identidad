@@ -13,10 +13,24 @@ import java.util.List;
  * en las pruebas. Lo que se hace en su lugar es lo que el inventario del corte ya decia: «cada
  * sistema siembra <b>su parte</b>».
  *
- * <p>El codigo, el nombre y el orden de las seis estan transcritos de la seccion {@code ##
- * Seguridad} de {@code rentas/docs/10-negocio/catalogo-de-opciones.md}, que sigue siendo la fuente
- * del manual (cap. 4), y son <b>exactamente</b> las que la etapa 2 se lleva de alli: son las
- * pantallas con que se administra quien puede hacer que.
+ * <p>El codigo, el nombre y el orden de las <b>seis primeras</b> estan transcritos de la seccion
+ * {@code ## Seguridad} de {@code rentas/docs/10-negocio/catalogo-de-opciones.md}, que sigue siendo
+ * la fuente del manual (cap. 4), y son <b>exactamente</b> las que la etapa 2 se lleva de alli: son
+ * las pantallas con que se administra quien puede hacer que.
+ *
+ * <h2>La septima, {@code eventos}, NO sale del manual, y hay que decirlo</h2>
+ *
+ * <p>La anade la <b>etapa 3</b> y no corresponde a ninguna pantalla: es la opcion con la que los
+ * cuatro sistemas leen y acusan el buzon de salida ({@code EventosController}). Se le da una opcion
+ * <b>propia</b> en vez de reusar una de las seis —que es lo que hizo {@code catastro}, sirviendo su
+ * buzon con {@code consulta_fichas}— porque alli el buzon lleva el padron, o sea lo mismo que esa
+ * opcion ya deja leer, y aqui lleva <b>quien puede hacer que</b>: darlo con {@code usuarios} o con
+ * {@code permisos} significaria que todo administrador de la municipalidad puede ademas vaciarle la
+ * cola de eventos a {@code caja}, y lo acusado no se vuelve a servir.
+ *
+ * <p>El coste esta dicho: es una opcion mas en la pantalla de permisos que ninguna persona necesita
+ * — la piden las cuatro <b>cuentas de servicio</b>, y quien se la concede es la implantacion, que
+ * siembra el grupo «Consumidores del buzon» con esta opcion y nada mas.
  *
  * <p><b>Las otras cinco de esa seccion NO estan, y no es un recorte a ojo</b>: {@code cambiar_anio}
  * y {@code cambiar_clave} son actos de la SESION de cada sistema, {@code auditoria} es la consulta
@@ -65,7 +79,8 @@ public final class CatalogoDelSistema {
                     opcion("grupos", "Grupos de usuarios"),
                     opcion("accesos", "Accesos y politicas"),
                     opcion("miembros", "Gestion de miembros"),
-                    opcion("permisos", "Permisos y niveles de accesibilidad"));
+                    opcion("permisos", "Permisos y niveles de accesibilidad"),
+                    opcion("eventos", "Buzon de eventos de identidad"));
 
     private static Opcion opcion(String codigo, String nombre) {
         return new Opcion(MODULO_CODIGO, MODULO_NOMBRE, codigo, nombre);

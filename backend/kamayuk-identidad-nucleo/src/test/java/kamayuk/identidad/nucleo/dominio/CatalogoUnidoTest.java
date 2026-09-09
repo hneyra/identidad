@@ -37,9 +37,16 @@ class CatalogoUnidoTest {
      * la etapa 4 (AC-7), su catalogo real las tiene, y la guarda cruzada compara contra el catalogo
      * REAL de cada clon. Quitarlas aqui pondria roja esa guarda por once opciones que ese sistema
      * si declara—. Las otras cuatro son lo que declara el {@code CatalogoDelSistema} de cada uno.
+     *
+     * <p><b>{@code identidad} pasa de 6 a 7 en la etapa 3</b>, y la que entra es {@code eventos}:
+     * la opcion con la que los cuatro sistemas leen y acusan el buzon. No sale del manual —no es
+     * una pantalla— y su motivo esta en el javadoc de {@code CatalogoDelSistema}. Actualizar este
+     * numero <b>no</b> es lo que hay que hacer cuando esta prueba se pone roja: lo que hay que
+     * mirar es si la opcion nueva la exige de verdad un endpoint, que es lo que {@code
+     * CatalogoDelSistemaTest} comprueba en los dos sentidos.
      */
     private static final Map<String, Integer> CUANTAS =
-            Map.of("rentas", 134, "catastro", 16, "normativa", 1, "caja", 3, "identidad", 6);
+            Map.of("rentas", 134, "catastro", 16, "normativa", 1, "caja", 3, "identidad", 7);
 
     @Test
     @DisplayName("los cinco cargan del jar, con las opciones medidas")
@@ -63,7 +70,7 @@ class CatalogoUnidoTest {
         }
 
         assertThat(catalogo.opciones())
-                .as("las 160 de los cinco, que son las que la implantacion siembra")
+                .as("las 161 de los cinco, que son las que la implantacion siembra")
                 .hasSize(CUANTAS.values().stream().mapToInt(Integer::intValue).sum());
     }
 
