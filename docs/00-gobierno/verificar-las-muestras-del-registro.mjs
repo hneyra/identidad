@@ -101,6 +101,21 @@ const CASOS = [
     esperado: 'verde',
   },
   {
+    nombre: 'cierra un issue, toca un catalogo de accesos y NO deja fila',
+    cuerpo: 'Cierra #2.',
+    archivos: ['docs/10-negocio/catalogo-de-accesos/catastro.json'],
+    anadido: '',
+    esperado: 'rojo',
+    dice: 'falta la fila',
+  },
+  {
+    nombre: 'toca docs/10-negocio FUERA del catalogo —su guion— y no exige fila',
+    cuerpo: 'Cierra #2.',
+    archivos: ['docs/10-negocio/derivar-catalogo-de-rentas.mjs'],
+    anadido: '',
+    esperado: 'verde',
+  },
+  {
     nombre: 'cierra un issue y NO toca codigo de produccion',
     cuerpo: 'Cierra #1.',
     archivos: [

@@ -1,0 +1,23 @@
+{
+  "sistema": "caja",
+  "modulos": [
+    {
+      "codigo": "TESORERIA",
+      "nombre": "Tesoreria",
+      "opciones": [
+        {
+          "codigo": "caja_tributaria",
+          "nombre": "Caja tributaria"
+        },
+        {
+          "codigo": "caja_tasas",
+          "nombre": "Caja de tasas y derechos administrativos"
+        },
+        {
+          "codigo": "cierre_caja",
+          "nombre": "Cierre y arqueo de caja"
+        }
+      ]
+    }
+  ]
+}

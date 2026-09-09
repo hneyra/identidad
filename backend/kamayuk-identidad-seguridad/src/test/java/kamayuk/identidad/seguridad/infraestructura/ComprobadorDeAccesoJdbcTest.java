@@ -130,6 +130,78 @@ class ComprobadorDeAccesoJdbcTest {
         assertThat(autorizaEn(municipalidadA, "nadie", Privilegio.LECTURA)).isFalse();
     }
 
+    /**
+     * El guardia mira <b>sus</b> opciones, y no las que otro sistema llama igual (etapa 2).
+     *
+     * <p>Es la mitad que la etapa 1 dejo declarada como coste: entonces esta base tenia un solo
+     * catalogo sembrado, asi que emparejar el acceso por el codigo era correcto y el comentario de
+     * {@code V1} decia que el dia que entraran los cinco el {@code single()} <b>reventaria</b>. Ese
+     * dia llego: la implantacion siembra ahora las 160 opciones de los cinco.
+     *
+     * <p>Lo que esta prueba comprueba no es que no reviente —eso se veria— sino lo que habria
+     * pasado si el arreglo hubiera sido un {@code LIMIT 1}: se le da a la cuenta un permiso ENTERO
+     * sobre una opcion de {@code rentas} con el <b>mismo codigo</b>, y el guardia de este sistema
+     * tiene que seguir diciendo que no. Elegir la primera fila seria autorizar contra el permiso de
+     * otro sistema, que es peor que fallar.
+     */
+    @Test
+    @DisplayName("etapa 2 — el permiso sobre la opcion HOMONIMA de otro sistema no autoriza")
+    void elPermisoDeOtroSistemaNoAutoriza() throws SQLException {
+        sembrarLaHomonimaDeRentas(municipalidadA);
+
+        assertThat(autorizaEn(municipalidadA, "jperez", Privilegio.ELIMINACION))
+                .as(
+                        "«jperez» tiene ELIMINACION sobre «%s» DE RENTAS, y ninguna sobre la de este"
+                                + " sistema. El guardia acota por `a.sistema = 'identidad'`: sin eso,"
+                                + " un permiso de otro catalogo abriria esta pantalla",
+                        ACCESO)
+                .isFalse();
+
+        // El contraste, sin el cual lo de arriba se cumpliria tambien con el guardia negando todo:
+        // lo que si esta otorgado sobre la opcion de ESTE sistema sigue autorizando.
+        assertThat(autorizaEn(municipalidadA, "jperez", Privilegio.LECTURA))
+                .as("y lo que si es de este sistema sigue autorizando")
+                .isTrue();
+    }
+
+    /** Un modulo y una opcion de `rentas` con el MISMO codigo, y el permiso entero encima. */
+    private static void sembrarLaHomonimaDeRentas(long municipalidad) throws SQLException {
+        try (Connection admin = base.conexionAdmin();
+                Statement s = admin.createStatement()) {
+            s.execute(
+                    "INSERT INTO modulo_sistema (municipalidad_id, sistema, codigo, nombre)"
+                            + " VALUES ("
+                            + municipalidad
+                            + ", 'rentas', 'PRUEBA', 'Modulo homonimo de rentas')"
+                            + " ON CONFLICT (municipalidad_id, sistema, codigo) DO NOTHING");
+            s.execute(
+                    "INSERT INTO acceso"
+                            + " (municipalidad_id, modulo_id, sistema, tipo, codigo, nombre)"
+                            + " SELECT "
+                            + municipalidad
+                            + ", id, 'rentas', 'OPCION_MENU', '"
+                            + ACCESO
+                            + "', 'Opcion homonima de rentas' FROM modulo_sistema"
+                            + " WHERE municipalidad_id = "
+                            + municipalidad
+                            + " AND sistema = 'rentas' AND codigo = 'PRUEBA'"
+                            + " ON CONFLICT (municipalidad_id, sistema, codigo) DO NOTHING");
+            s.execute(
+                    "INSERT INTO permiso (municipalidad_id, acceso_id, grupo_id, eliminacion,"
+                            + " usuario_registro) SELECT "
+                            + municipalidad
+                            + ", a.id, g.id, true, 'prueba' FROM acceso a, grupo g"
+                            + " WHERE a.municipalidad_id = "
+                            + municipalidad
+                            + " AND a.sistema = 'rentas' AND a.codigo = '"
+                            + ACCESO
+                            + "' AND g.municipalidad_id = "
+                            + municipalidad
+                            + " AND g.nombre = 'Grupo de prueba'"
+                            + " ON CONFLICT DO NOTHING");
+        }
+    }
+
     private boolean autorizaEn(long municipalidad, String cuenta, Privilegio privilegio) {
         TenantContext.fijar(new MunicipalidadId(municipalidad));
         Boolean resultado =

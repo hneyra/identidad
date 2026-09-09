@@ -15,10 +15,19 @@
 **/node_modules/
 **/.gradle/
 #
-# `docs/`, `despliegue/` e `infrastructure/` se excluyen porque **ningun `COPY` del Dockerfile los
-# lee**: comprobado sobre sus dos etapas, todo lo que copia sale de `backend/`. Excluir algo que se
-# copiara no daria un error de contexto — daria un `COPY` que se salta con NO-SOURCE y una imagen a
-# la que le falta un archivo, compilando en verde.
-docs/
+# `despliegue/` e `infrastructure/` se excluyen porque **ningun `COPY` del Dockerfile los lee**:
+# comprobado sobre sus dos etapas. Excluir algo que se copiara no daria un error de contexto —
+# daria un `COPY` que se salta con NO-SOURCE y una imagen a la que le falta un archivo, compilando
+# en verde.
 despliegue/
 infrastructure/
+#
+# `docs/` se excluye ENTERO menos una carpeta, y la excepcion no es comodidad: desde la etapa 2 el
+# build de `kamayuk-identidad-nucleo` copia al jar los cinco `catalogo-de-accesos/<sistema>.json`,
+# que son las 160 opciones que la implantacion siembra (AC-4). Sin ellos dentro del contexto, la
+# tarea `exigirCatalogoDeAccesos` para el build de la imagen — a proposito: es la cicatriz que
+# `rentas` dejo con su catalogo del manual, donde el `Copy` se saltaba con NO-SOURCE, el jar salia
+# sin catalogo compilando en verde, y el sintoma aparecia dos versiones despues como «nadie puede
+# entrar a ninguna pantalla».
+docs/
+!docs/10-negocio/catalogo-de-accesos/

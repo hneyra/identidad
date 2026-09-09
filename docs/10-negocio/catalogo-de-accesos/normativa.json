@@ -1,0 +1,15 @@
+{
+  "sistema": "normativa",
+  "modulos": [
+    {
+      "codigo": "SEGURIDAD",
+      "nombre": "Seguridad",
+      "opciones": [
+        {
+          "codigo": "parametros",
+          "nombre": "Parametros del sistema"
+        }
+      ]
+    }
+  ]
+}

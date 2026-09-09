@@ -75,6 +75,7 @@ public final class DatosDePrueba {
 
             sembrarSeguridad(app, muni, sufijo);
             sembrarDocumento(app, muni, sufijo);
+            sembrarEventoDelBuzon(app, muni, sufijo);
 
             app.commit();
         }
@@ -161,6 +162,32 @@ public final class DatosDePrueba {
                 moduloId,
                 sistema,
                 codigo);
+    }
+
+    /**
+     * Una fila del buzon de salida (`V2`).
+     *
+     * <p>Se siembra por lo mismo que las demas y no por completitud: la verificacion «con contexto
+     * de A no se ve ninguna fila de B» es <b>vacia</b> si en la tabla no hay filas de B. Cuando
+     * `V2` llego sin esta siembra, la prueba de aislamiento salio roja diciendo exactamente eso
+     * —«identidad_evento: la municipalidad A debe ver sus propias filas … Expecting 0L to be
+     * greater than 0L»—, que es la guarda haciendo su trabajo.
+     *
+     * <p>{@code sujeto_id} lleva un valor <b>no nulo</b> porque el {@code CHECK} cruzado lo exige
+     * para los siete tipos, y no apunta a ninguna fila real: la tabla no tiene clave foranea a
+     * proposito —el sujeto es un usuario o un grupo segun el tipo, y un evento tiene que sobrevivir
+     * a la fila que lo produjo—.
+     */
+    private static void sembrarEventoDelBuzon(Connection app, long muni, String sufijo)
+            throws SQLException {
+        ejecutar(
+                app,
+                "INSERT INTO identidad_evento (municipalidad_id, evento_id, tipo, sujeto_id,"
+                        + " cuerpo, huella, creado_en)"
+                        + " VALUES (?, gen_random_uuid(), 'GRUPO_DADO_DE_ALTA', 1,"
+                        + "         CAST(? AS jsonb), repeat('e', 64), now())",
+                muni,
+                "{\"grupoId\":1,\"nombre\":\"Grupo " + sufijo + "\"}");
     }
 
     private static void sembrarDocumento(Connection app, long muni, String sufijo)

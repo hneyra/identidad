@@ -1,0 +1,613 @@
+{
+  "sistema": "rentas",
+  "modulos": [
+    {
+      "codigo": "INICIO",
+      "nombre": "Inicio",
+      "opciones": [
+        {
+          "codigo": "inicio",
+          "nombre": "Panel de recaudación"
+        },
+        {
+          "codigo": "portal",
+          "nombre": "Consulta y pago en línea"
+        }
+      ]
+    },
+    {
+      "codigo": "CATASTRO",
+      "nombre": "Catastro",
+      "opciones": [
+        {
+          "codigo": "ficha_urbana",
+          "nombre": "Ficha catastral urbana individual"
+        },
+        {
+          "codigo": "ficha_economica",
+          "nombre": "Ficha catastral económica"
+        },
+        {
+          "codigo": "ficha_bienes",
+          "nombre": "Ficha de bienes comunes"
+        },
+        {
+          "codigo": "ficha_rural",
+          "nombre": "Ficha catastral rural"
+        },
+        {
+          "codigo": "consulta_fichas",
+          "nombre": "Consulta de fichas catastrales"
+        },
+        {
+          "codigo": "actualizacion_catastro",
+          "nombre": "Actualización del catastro"
+        },
+        {
+          "codigo": "ficha_contribuyente_reporte",
+          "nombre": "Reporte de ficha del contribuyente"
+        },
+        {
+          "codigo": "calles",
+          "nombre": "Mantenimiento de vías y calles"
+        },
+        {
+          "codigo": "sectores",
+          "nombre": "Sectores, manzanas y lotes"
+        },
+        {
+          "codigo": "aranceles",
+          "nombre": "Aranceles de terreno"
+        },
+        {
+          "codigo": "valores_unitarios",
+          "nombre": "Valores unitarios de edificación"
+        },
+        {
+          "codigo": "depreciacion",
+          "nombre": "Tabla de depreciación"
+        }
+      ]
+    },
+    {
+      "codigo": "RENTAS_REGISTRO",
+      "nombre": "Rentas · Registro",
+      "opciones": [
+        {
+          "codigo": "contribuyentes",
+          "nombre": "Contribuyentes"
+        },
+        {
+          "codigo": "predios_rentas",
+          "nombre": "Predios del contribuyente"
+        },
+        {
+          "codigo": "predial_individual",
+          "nombre": "Cálculo individual del impuesto predial"
+        },
+        {
+          "codigo": "predial_masivo",
+          "nombre": "Cálculo masivo del impuesto predial"
+        },
+        {
+          "codigo": "declaracion_jurada",
+          "nombre": "Declaración jurada — HR, PU y PR"
+        },
+        {
+          "codigo": "arbitrios",
+          "nombre": "Arbitrios municipales"
+        },
+        {
+          "codigo": "transferencia_predio",
+          "nombre": "Transferencia de predio"
+        },
+        {
+          "codigo": "alcabala",
+          "nombre": "Impuesto de alcabala"
+        },
+        {
+          "codigo": "vehiculos",
+          "nombre": "Ficha de vehículo"
+        },
+        {
+          "codigo": "vehicular_calculo",
+          "nombre": "Cálculo del impuesto vehicular"
+        },
+        {
+          "codigo": "transferencia_vehiculo",
+          "nombre": "Transferencia de vehículo"
+        },
+        {
+          "codigo": "espectaculos",
+          "nombre": "Espectáculos públicos no deportivos"
+        },
+        {
+          "codigo": "beneficios",
+          "nombre": "Beneficios y exoneraciones"
+        },
+        {
+          "codigo": "alta_deuda",
+          "nombre": "Alta de deuda"
+        },
+        {
+          "codigo": "baja_deuda",
+          "nombre": "Baja de deuda"
+        }
+      ]
+    },
+    {
+      "codigo": "FISCALIZACION",
+      "nombre": "Fiscalización",
+      "opciones": [
+        {
+          "codigo": "fisc_programa",
+          "nombre": "Programación de fiscalización"
+        },
+        {
+          "codigo": "fisc_predial",
+          "nombre": "Fiscalización predial — acta de inspección"
+        },
+        {
+          "codigo": "fisc_vehicular",
+          "nombre": "Fiscalización vehicular"
+        },
+        {
+          "codigo": "fisc_resultados",
+          "nombre": "Resultados y determinaciones"
+        },
+        {
+          "codigo": "fisc_omisos",
+          "nombre": "Omisos y subvaluadores"
+        },
+        {
+          "codigo": "fisc_estado_cuenta",
+          "nombre": "Estado de cuenta de fiscalización"
+        },
+        {
+          "codigo": "fisc_historico",
+          "nombre": "Histórico de fiscalización predial"
+        },
+        {
+          "codigo": "resolucion_determinacion_fisc",
+          "nombre": "Resolución de determinación de fiscalización"
+        }
+      ]
+    },
+    {
+      "codigo": "TRANSITO",
+      "nombre": "Tránsito",
+      "opciones": [
+        {
+          "codigo": "papeletas",
+          "nombre": "Papeletas de infracción de tránsito"
+        },
+        {
+          "codigo": "transito_busqueda",
+          "nombre": "Búsqueda de infracciones"
+        },
+        {
+          "codigo": "codigos_transito",
+          "nombre": "Tabla de códigos de infracción de tránsito"
+        },
+        {
+          "codigo": "transito_descargos",
+          "nombre": "Descargos y reclamos de papeletas"
+        },
+        {
+          "codigo": "internamiento",
+          "nombre": "Internamiento vehicular"
+        },
+        {
+          "codigo": "transito_documentos",
+          "nombre": "Emisión de resoluciones y otros documentos"
+        },
+        {
+          "codigo": "transito_valores",
+          "nombre": "Generación de valores de tránsito"
+        },
+        {
+          "codigo": "transito_cambio_numero",
+          "nombre": "Cambio de número de papeleta de tránsito"
+        },
+        {
+          "codigo": "transito_reportes",
+          "nombre": "Reportes de infracción de tránsito"
+        },
+        {
+          "codigo": "transito_record_conductor",
+          "nombre": "Record de conductor"
+        },
+        {
+          "codigo": "transito_record_vehicular",
+          "nombre": "Record vehicular"
+        },
+        {
+          "codigo": "transito_constancia_libre",
+          "nombre": "Constancia libre de infracciones"
+        },
+        {
+          "codigo": "transito_padron",
+          "nombre": "Padrón de papeletas de tránsito"
+        },
+        {
+          "codigo": "transito_estado_cuenta",
+          "nombre": "Estado de cuenta de infracciones"
+        },
+        {
+          "codigo": "transito_papeleta_reporte",
+          "nombre": "Reporte papeleta de infracción"
+        },
+        {
+          "codigo": "transito_rg_ordinaria",
+          "nombre": "Resolución de gerencia ordinaria"
+        },
+        {
+          "codigo": "transito_rg_sancionadora",
+          "nombre": "Resolución de gerencia sancionadora"
+        },
+        {
+          "codigo": "transito_padron_coactiva",
+          "nombre": "Padrón de papeletas enviadas a coactiva"
+        },
+        {
+          "codigo": "transito_padron_constancias",
+          "nombre": "Padrón de constancias libres de infracciones"
+        },
+        {
+          "codigo": "transito_resumen_recaudacion",
+          "nombre": "Resumen de recaudación de tránsito"
+        },
+        {
+          "codigo": "transito_resumen_papeletas",
+          "nombre": "Resumen de papeletas pendientes y pagadas"
+        },
+        {
+          "codigo": "transito_resumen_codigo",
+          "nombre": "Resumen de papeletas por código de infracción"
+        },
+        {
+          "codigo": "transito_resumen_placa",
+          "nombre": "Resumen de papeletas por iniciales de placa"
+        }
+      ]
+    },
+    {
+      "codigo": "INFRACCIONES_ADMINISTRATIVAS",
+      "nombre": "Infracciones administrativas",
+      "opciones": [
+        {
+          "codigo": "adm_notificacion",
+          "nombre": "Notificación administrativa"
+        },
+        {
+          "codigo": "infracciones_adm",
+          "nombre": "Infracción administrativa"
+        },
+        {
+          "codigo": "codigos_cuis",
+          "nombre": "Cuadro único de infracciones y sanciones (CUIS)"
+        },
+        {
+          "codigo": "adm_codigos_reporte",
+          "nombre": "Reporte de códigos de infracción administrativa"
+        },
+        {
+          "codigo": "adm_valores",
+          "nombre": "Generación de valores administrativa"
+        },
+        {
+          "codigo": "adm_estado_cuenta",
+          "nombre": "Estado de cuenta de papeleta administrativa"
+        },
+        {
+          "codigo": "adm_resolucion_gerencia",
+          "nombre": "Resolución de gerencia"
+        },
+        {
+          "codigo": "adm_notificacion_resolucion",
+          "nombre": "Notificación de resolución de gerencia"
+        },
+        {
+          "codigo": "adm_reportes",
+          "nombre": "Reportes de infracción administrativa"
+        },
+        {
+          "codigo": "adm_padron_notificaciones",
+          "nombre": "Padrón de notificaciones"
+        },
+        {
+          "codigo": "adm_notificaciones_vencidas",
+          "nombre": "Notificaciones vencidas"
+        },
+        {
+          "codigo": "adm_notificaciones_contribuyente",
+          "nombre": "Notificaciones por contribuyente"
+        },
+        {
+          "codigo": "adm_resumen_recaudacion",
+          "nombre": "Resumen de recaudación de papeletas"
+        }
+      ]
+    },
+    {
+      "codigo": "TESORERIA",
+      "nombre": "Tesorería",
+      "opciones": [
+        {
+          "codigo": "caja_tributaria",
+          "nombre": "Caja tributaria"
+        },
+        {
+          "codigo": "caja_tasas",
+          "nombre": "Caja de tasas y derechos administrativos"
+        },
+        {
+          "codigo": "fraccionamiento",
+          "nombre": "Fraccionamiento tributario"
+        },
+        {
+          "codigo": "consulta_convenios",
+          "nombre": "Consulta de convenios"
+        },
+        {
+          "codigo": "duplicado_recibo",
+          "nombre": "Duplicado de recibo"
+        },
+        {
+          "codigo": "anulacion_recibo",
+          "nombre": "Anulación de recibo"
+        },
+        {
+          "codigo": "anulacion_convenio",
+          "nombre": "Anulación de convenio"
+        },
+        {
+          "codigo": "cierre_caja",
+          "nombre": "Cierre y arqueo de caja"
+        },
+        {
+          "codigo": "avance_recaudacion",
+          "nombre": "Avance de recaudación"
+        },
+        {
+          "codigo": "recaudacion_area",
+          "nombre": "Recaudación por área"
+        }
+      ]
+    },
+    {
+      "codigo": "CONSULTAS",
+      "nombre": "Consultas",
+      "opciones": [
+        {
+          "codigo": "cuenta_corriente",
+          "nombre": "Estado de cuenta corriente"
+        },
+        {
+          "codigo": "consulta_deuda",
+          "nombre": "Consulta de deuda"
+        },
+        {
+          "codigo": "consulta_unificada",
+          "nombre": "Consulta unificada predial-arbitrios"
+        },
+        {
+          "codigo": "consulta_resumen_predial",
+          "nombre": "Consulta resumen predial-arbitrios"
+        },
+        {
+          "codigo": "consulta_altas_bajas",
+          "nombre": "Consulta de altas y bajas"
+        },
+        {
+          "codigo": "consulta_deudas_beneficio",
+          "nombre": "Consulta de deudas con beneficio"
+        },
+        {
+          "codigo": "consulta_pagos",
+          "nombre": "Consulta de pagos"
+        },
+        {
+          "codigo": "consulta_predios",
+          "nombre": "Consulta de predios"
+        },
+        {
+          "codigo": "consulta_vehiculos",
+          "nombre": "Consulta de vehículos"
+        },
+        {
+          "codigo": "consulta_valores",
+          "nombre": "Consulta de valores emitidos"
+        },
+        {
+          "codigo": "constancia",
+          "nombre": "Constancia de no adeudo"
+        }
+      ]
+    },
+    {
+      "codigo": "VALORES",
+      "nombre": "Valores",
+      "opciones": [
+        {
+          "codigo": "valores_individual",
+          "nombre": "Generación individual de valores"
+        },
+        {
+          "codigo": "valores_masivo",
+          "nombre": "Generación masiva de valores"
+        },
+        {
+          "codigo": "valores_busqueda",
+          "nombre": "Búsqueda y mantenimiento de valores"
+        },
+        {
+          "codigo": "notificacion_valores",
+          "nombre": "Notificación de valores"
+        },
+        {
+          "codigo": "prescripcion",
+          "nombre": "Prescripción de la deuda"
+        },
+        {
+          "codigo": "pase_coactiva",
+          "nombre": "Pase de valores a coactiva"
+        }
+      ]
+    },
+    {
+      "codigo": "COACTIVA",
+      "nombre": "Coactiva",
+      "opciones": [
+        {
+          "codigo": "coactiva_expedientes",
+          "nombre": "Expedientes coactivos"
+        },
+        {
+          "codigo": "importacion_valores",
+          "nombre": "Importación de valores a coactiva"
+        },
+        {
+          "codigo": "proceso_coactivo",
+          "nombre": "Proceso coactivo"
+        },
+        {
+          "codigo": "rec_impresion",
+          "nombre": "Impresión de resolución de ejecución coactiva"
+        },
+        {
+          "codigo": "expediente_historial",
+          "nombre": "Gestionar historial del expediente"
+        },
+        {
+          "codigo": "cambiar_direccion_ref",
+          "nombre": "Cambiar dirección referencial"
+        },
+        {
+          "codigo": "costas_procesales",
+          "nombre": "Liquidación de costas procesales"
+        },
+        {
+          "codigo": "fraccionamiento_coactivo",
+          "nombre": "Fraccionamiento coactivo"
+        },
+        {
+          "codigo": "actos_coactivos",
+          "nombre": "Registro de actos coactivos"
+        },
+        {
+          "codigo": "notificaciones_coactivas",
+          "nombre": "Emisión de notificaciones coactivas"
+        },
+        {
+          "codigo": "coactiva_consulta_deudas",
+          "nombre": "Consulta de deudas en coactiva"
+        },
+        {
+          "codigo": "coactiva_deudas_beneficio",
+          "nombre": "Consulta de deudas en beneficio (coactiva)"
+        }
+      ]
+    },
+    {
+      "codigo": "AUTORIZACIONES_Y_LICENCIAS",
+      "nombre": "Autorizaciones y licencias",
+      "opciones": [
+        {
+          "codigo": "anuncios",
+          "nombre": "Anuncio y propaganda"
+        },
+        {
+          "codigo": "anuncios_reportes",
+          "nombre": "Reportes de anuncio y propaganda"
+        },
+        {
+          "codigo": "licencia_funcionamiento",
+          "nombre": "Licencia de funcionamiento"
+        },
+        {
+          "codigo": "licencia_padron",
+          "nombre": "Padrón de licencias de funcionamiento"
+        },
+        {
+          "codigo": "licencia_resumen_anual",
+          "nombre": "Resumen de licencias por año"
+        },
+        {
+          "codigo": "licencia_resolucion_cancelacion",
+          "nombre": "Resolución de cancelación de licencia"
+        },
+        {
+          "codigo": "licencia_resolucion_duplicado",
+          "nombre": "Resolución de duplicado de licencia"
+        },
+        {
+          "codigo": "fue_edificacion",
+          "nombre": "Formulario único de edificación (FUE)"
+        },
+        {
+          "codigo": "edificacion_reporte",
+          "nombre": "Reporte general de licencias de edificación"
+        },
+        {
+          "codigo": "ciiu",
+          "nombre": "Catálogo CIIU de giros"
+        },
+        {
+          "codigo": "certificados",
+          "nombre": "Certificados de numeración y zonificación"
+        }
+      ]
+    },
+    {
+      "codigo": "SEGURIDAD",
+      "nombre": "Seguridad",
+      "opciones": [
+        {
+          "codigo": "modulos",
+          "nombre": "Módulos del sistema"
+        },
+        {
+          "codigo": "usuarios",
+          "nombre": "Usuarios del sistema"
+        },
+        {
+          "codigo": "grupos",
+          "nombre": "Grupos de usuarios"
+        },
+        {
+          "codigo": "accesos",
+          "nombre": "Accesos y políticas"
+        },
+        {
+          "codigo": "miembros",
+          "nombre": "Gestión de miembros"
+        },
+        {
+          "codigo": "permisos",
+          "nombre": "Permisos y niveles de accesibilidad"
+        },
+        {
+          "codigo": "cambiar_anio",
+          "nombre": "Cambiar el año de trabajo"
+        },
+        {
+          "codigo": "cambiar_clave",
+          "nombre": "Cambiar contraseña"
+        },
+        {
+          "codigo": "auditoria",
+          "nombre": "Auditoría del sistema"
+        },
+        {
+          "codigo": "parametros",
+          "nombre": "Parámetros del sistema"
+        },
+        {
+          "codigo": "respaldo",
+          "nombre": "Copias de seguridad"
+        }
+      ]
+    }
+  ]
+}

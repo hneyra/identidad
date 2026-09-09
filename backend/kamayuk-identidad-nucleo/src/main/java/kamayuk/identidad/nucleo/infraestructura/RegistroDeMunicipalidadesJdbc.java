@@ -1,4 +1,4 @@
-package kamayuk.identidad.seguridad.infraestructura;
+package kamayuk.identidad.nucleo.infraestructura;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
