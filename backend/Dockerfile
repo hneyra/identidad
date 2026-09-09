@@ -17,21 +17,22 @@
 # La compilacion, en cambio, es una sola: las dos salen del mismo `construccion`,
 # asi que el codigo que migra en produccion es exactamente el que CI verifico.
 
-# El contexto de compilacion es la RAIZ del repositorio, no `backend/`. En el monolito eso era por
-# el catalogo de opciones; aqui ya no —ver el comentario del `COPY` que se fue—, y se conserva
-# porque el `.dockerignore` que acota el contexto vive en la raiz y desde `backend/` no se aplica.
+# El contexto de compilacion es la RAIZ del repositorio, no `backend/`, y desde la ETAPA 2 vuelve a
+# ser por el mismo motivo que en el monolito: el catalogo de accesos vive en `docs/` y el build lo
+# copia a los recursos del nucleo. (Ademas, el `.dockerignore` que acota el contexto vive en la raiz
+# y desde `backend/` no se aplicaria.)
 #
 # QUIEN CONSTRUYE ESTA IMAGEN TIENE QUE HACERLO DESDE LA RAIZ:
 #   docker build -f backend/Dockerfile --target aplicacion -t ghcr.io/hneyra/kamayuk-identidad .
 #   docker build -f backend/Dockerfile --target migrador  -t ghcr.io/hneyra/kamayuk-identidad-migrador .
 #
-# En `rentas` el motivo original sigue vigente y conviene tenerlo escrito, porque es la cicatriz
-# que dejo: el catalogo de las 134 opciones (NEG-03) vive en su `docs/` y su build lo copia a los
-# recursos de `kamayuk-rentas-seguridad`. Con el contexto en `backend/` ese archivo no existia
-# dentro de la imagen, la tarea que lo copia se saltaba con NO-SOURCE, y el jar salia sin catalogo
-# —compilando en verde—. El sintoma aparecio mucho despues: la aplicacion arrancaba y servia
-# peticiones, pero la implantacion no encontraba ninguna opcion que sembrar, asi que nadie podia
-# entrar a ninguna pantalla.
+# La cicatriz que lo explica es de `rentas`, y aqui aplica igual: el catalogo de las 134 opciones
+# (NEG-03) vive en su `docs/` y su build lo copia a los recursos de `kamayuk-rentas-seguridad`. Con
+# el contexto en `backend/` ese archivo no existia dentro de la imagen, la tarea que lo copia se
+# saltaba con NO-SOURCE, y el jar salia sin catalogo —compilando en verde—. El sintoma aparecio
+# mucho despues: la aplicacion arrancaba y servia peticiones, pero la implantacion no encontraba
+# ninguna opcion que sembrar, asi que nadie podia entrar a ninguna pantalla. Aqui esa tarea FALLA
+# el build en vez de saltarse, y ademas este `COPY` trae los cinco archivos al contexto.
 #
 # ---------------------------------------------------------------------------
 FROM eclipse-temurin:25-jdk AS construccion
@@ -47,18 +48,17 @@ RUN ./gradlew --version --no-daemon
 COPY backend/buildSrc/ buildSrc/
 COPY backend/config/ config/
 
-# NO se trae nada de fuera de `backend/`, y es lo que hace que esta imagen se pueda construir.
+# LO UNICO QUE SE TRAE DE FUERA DE `backend/`, y son datos: los cinco catalogos de accesos.
 #
-# El `Dockerfile` del monolito copia `docs/10-negocio/catalogo-de-opciones.md` a los recursos de su
-# modulo de seguridad: alli ese archivo es la fuente de las 134 opciones que siembra la implantacion
-# (RF-122). En `identidad` NO EXISTE —se quedo en `rentas` con el resto del catalogo del manual—, asi
-# que copiarlo fallaria con «not found» antes de compilar una sola clase, que es exactamente lo que le
-# pasaba a `catastro` hasta C-7.
+# Esta base guarda a quien se le concede cada opcion de los CINCO sistemas (ADR-0039), asi que la
+# implantacion siembra 160 opciones y no las seis de aqui. Los cinco archivos viven en `docs/`
+# porque son el sujeto de la guarda cruzada de `infrastructure` —que compara cada uno con el
+# catalogo real de su clon, en las dos direcciones— y el build del nucleo los copia al jar.
 #
-# Su parte del catalogo la declara `kamayuk.identidad.seguridad.dominio.CatalogoDelSistema`, en codigo.
-# En los otros cuatro hay ademas una prueba que la compara contra los `@RequiereAcceso` del propio
-# repositorio; aqui esa comparacion todavia no tiene sujeto —la etapa 1 no trae capa web— y
-# `CatalogoDelSistemaTest` lo dice y lo sujeta, de modo que el primer controlador la pone roja.
+# `.dockerignore` excluye `docs/` entero y vuelve a incluir exactamente esta carpeta: lo que no se
+# lee no viaja, y lo que se lee tiene que estar. Si faltara, `exigirCatalogoDeAccesos` para el
+# build aqui —no en produccion dos versiones despues, que es como se descubrio en `rentas`—.
+COPY docs/10-negocio/catalogo-de-accesos/ /origen/docs/10-negocio/catalogo-de-accesos/
 
 COPY backend/ ./
 

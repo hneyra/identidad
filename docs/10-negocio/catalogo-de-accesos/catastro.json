@@ -1,0 +1,81 @@
+{
+  "sistema": "catastro",
+  "modulos": [
+    {
+      "codigo": "CATASTRO",
+      "nombre": "Catastro",
+      "opciones": [
+        {
+          "codigo": "ficha_urbana",
+          "nombre": "Ficha catastral urbana individual"
+        },
+        {
+          "codigo": "ficha_economica",
+          "nombre": "Ficha catastral economica"
+        },
+        {
+          "codigo": "ficha_bienes",
+          "nombre": "Ficha de bienes comunes"
+        },
+        {
+          "codigo": "ficha_rural",
+          "nombre": "Ficha catastral rural"
+        },
+        {
+          "codigo": "consulta_fichas",
+          "nombre": "Consulta de fichas catastrales"
+        },
+        {
+          "codigo": "actualizacion_catastro",
+          "nombre": "Actualizacion del catastro"
+        },
+        {
+          "codigo": "ficha_contribuyente_reporte",
+          "nombre": "Reporte de ficha del contribuyente"
+        },
+        {
+          "codigo": "calles",
+          "nombre": "Mantenimiento de vias y calles"
+        },
+        {
+          "codigo": "sectores",
+          "nombre": "Sectores, manzanas y lotes"
+        },
+        {
+          "codigo": "aranceles",
+          "nombre": "Aranceles de terreno"
+        },
+        {
+          "codigo": "valores_unitarios",
+          "nombre": "Valores unitarios de edificacion"
+        },
+        {
+          "codigo": "depreciacion",
+          "nombre": "Tabla de depreciacion"
+        },
+        {
+          "codigo": "zonificacion",
+          "nombre": "Zonificacion urbana"
+        },
+        {
+          "codigo": "gestion_del_riesgo",
+          "nombre": "Gestion del riesgo de desastres del predio"
+        },
+        {
+          "codigo": "fiscalizacion_catastral",
+          "nombre": "Fiscalizacion catastral: hallazgos y actas"
+        }
+      ]
+    },
+    {
+      "codigo": "CONSULTAS",
+      "nombre": "Consultas",
+      "opciones": [
+        {
+          "codigo": "consulta_resumen_predial",
+          "nombre": "Consulta resumen predial-arbitrios"
+        }
+      ]
+    }
+  ]
+}

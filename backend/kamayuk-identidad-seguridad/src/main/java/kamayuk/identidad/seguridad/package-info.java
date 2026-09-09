@@ -14,21 +14,35 @@
  * acceso que depende de la disponibilidad de otro despliegue no es una comprobacion de acceso: es
  * un acoplamiento con forma de politica de seguridad.
  *
- * <h2>Lo que aqui NO hay, y es deliberado</h2>
+ * <h2>Lo que quedo aqui despues de la etapa 2, y lo que se fue</h2>
  *
- * <p>No hay pantallas de administracion de seguridad. Las nueve escrituras de grupos, usuarios,
- * miembros y permisos viven <b>solo en {@code rentas}</b> (ADR-0030 §3: los cuatro frontends leen
- * {@code rentas/api/v1/sesion/permisos}). Aqui hay dos cosas: quien <b>lee</b> la copia para
- * autorizar, y quien la <b>siembra</b> al implantar la municipalidad.
+ * <p>En la etapa 1 este modulo tenia dos cosas: quien <b>lee</b> la copia para autorizar y quien la
+ * <b>siembra</b> al implantar. La etapa 2 trajo las once escrituras desde {@code rentas} y con
+ * ellas se llevo la siembra: {@code ImplantarMunicipalidad}, {@code SembradorDelCatalogo} y {@code
+ * RegistroDeMunicipalidadesJdbc} viven ahora en {@code kamayuk.identidad.nucleo.aplicacion}, porque
+ * el administrador ya no se escribe con SQL directo sino <b>llamando a los casos de uso</b> — que
+ * es lo que hace que emita sus eventos (AC-6).
  *
- * <p><b>HUECO DECLARADO, y en este repositorio con mas motivo que en los otros cuatro:</b> como se
- * sincroniza la copia cuando alguien cambia un permiso en {@code rentas} — y que pasa mientras esta
- * desatrasada — <b>no esta construido</b>. Es literalmente lo que D-19 enunciaba, y lo que ADR-0039
- * contesta es de <b>quien</b> es la autorizacion, no como se replica: eso es la etapa 2, que trae
- * aqui las once escrituras y deja al buzon llevando lo escrito a los otros cuatro. Hoy la copia la
- * escribe la implantacion y nadie mas, asi que lo que hay es correcto y estatico: el grupo de
- * administracion con sus seis opciones. Un permiso otorgado en {@code rentas} despues de eso <b>no
- * llega</b>, y eso se dice aqui en vez de descubrirse cuando alguien no pueda abrir una pantalla.
+ * <p>La mudanza fue de modulo Gradle y no solo de paquete, y hay un motivo que conviene dejar
+ * escrito: los tipos de {@code nucleo.aplicacion} estan en un <b>subpaquete</b> del modulo, asi que
+ * Spring Modulith no los expone y este modulo no puede llamarlos. La convencion de los cinco
+ * repositorios es que un modulo solo use los tipos del paquete raiz de otro —medido: en {@code
+ * rentas} no hay ni un {@code import} cruzado a un subpaquete en {@code src/main}—, y romperla con
+ * una interfaz nombrada de Modulith habria metido una dependencia del framework en un contexto
+ * acotado para arreglar un problema del sistema de modulos.
+ *
+ * <p>Aqui se queda <b>una sola clase de produccion</b>: {@code ComprobadorDeAccesoJdbc}, la
+ * implementacion del puerto que el guardia pide. Es la que los otros cuatro tienen igual, y esa es
+ * la razon de que no dependa del nucleo: tiene que poder autorizar aunque el contexto acotado no
+ * este en el classpath.
+ *
+ * <p><b>Y lo que era un HUECO DECLARADO ya no lo es del todo</b>: como se sincroniza la copia
+ * cuando alguien cambia un permiso. Desde la etapa 2 <b>lo escrito aqui se publica</b> en {@code
+ * identidad_evento}, en la misma transaccion. Lo que sigue sin construirse es el otro extremo —el
+ * consumidor de cada uno de los cuatro, que es la etapa 4— y <b>cuanto dura la ventana de
+ * inconsistencia</b>, que ADR-0039 exige medida y no supuesta. Y entre esta etapa y la 4 hay dos
+ * sitios donde se administra, porque {@code rentas} conserva sus escrituras hasta tener su
+ * consumidor (AC-7).
  */
 @org.jspecify.annotations.NullMarked
 package kamayuk.identidad.seguridad;

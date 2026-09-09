@@ -1,4 +1,4 @@
-package kamayuk.identidad.seguridad.aplicacion;
+package kamayuk.identidad.nucleo.aplicacion;
 
 import java.util.Locale;
 import java.util.Set;

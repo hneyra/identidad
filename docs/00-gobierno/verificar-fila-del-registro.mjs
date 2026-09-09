@@ -84,6 +84,15 @@ export const RUTAS_DE_CODIGO = [
   /^backend\/[^/]+\/src\/main\//,
   /^infrastructure\/src\//,
   /^despliegue\//,
+  // Los cinco catalogos de accesos (etapa 2). Son DATOS y estan en `docs/`, y aun asi son codigo
+  // de produccion: el build los copia al jar y la implantacion siembra de ahi las 160 opciones de
+  // los cinco sistemas. Cambiar uno cambia a que pantallas se les puede dar permiso en una
+  // municipalidad (RF-122), que es tanto como cambiar una linea de Java.
+  //
+  // Se acota a esa carpeta y no a `docs/10-negocio/` entera por lo mismo que `infrastructure/` se
+  // acota a `src/`: lo que hay al lado —un guion que la deriva, un README— no lo lee nadie en
+  // produccion, y una guarda que se dispara en cada PR de documentacion se acaba apagando.
+  /^docs\/10-negocio\/catalogo-de-accesos\//,
 ];
 
 /** Como se declara que un PR cierra un issue. GitHub admite estas y alguna mas. */

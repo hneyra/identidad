@@ -32,26 +32,42 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>La consulta no filtra por municipalidad: lo hace la politica RLS con el contexto de la
  * transaccion (regla 2). Un usuario de otra municipalidad, sencillamente, no existe desde aqui.
  *
- * <h2>Lo que la columna {@code sistema} deja abierto, dicho aqui y no descubierto en la etapa 2
- * </h2>
+ * <h2>Lo que la columna {@code sistema} dejo abierto, y como lo cierra la etapa 2</h2>
  *
  * <p>El esquema de {@code identidad} llavea {@code acceso} por {@code (municipalidad_id, sistema,
- * codigo)} porque esta base guarda los catalogos de los cinco. Esta consulta empareja el acceso por
- * {@code a.codigo = :acceso} <b>y nada mas</b>, y no puede hacer otra cosa: el puerto que
- * implementa —{@link kamayuk.identidad.autorizacion.ComprobadorDeAcceso#autoriza}— recibe el codigo
- * del acceso y no de que sistema es, porque en los otros cuatro esa pregunta no existe.
+ * codigo)} porque esta base guarda los catalogos de los cinco. La etapa 1 dejo esta consulta
+ * emparejando por {@code a.codigo = :acceso} <b>y nada mas</b>, con el coste declarado: mientras
+ * hubiera un solo catalogo sembrado habia una fila por codigo, y el dia que entraran los cinco el
+ * {@code single()} de la primera rama <b>reventaria</b> — porque {@code permisos} es una opcion de
+ * este sistema y otra de {@code rentas}.
  *
- * <p>Mientras esta base tenga sembrado <b>un solo</b> catalogo —la etapa 1 siembra el de {@code
- * identidad} y nada mas— hay exactamente una fila por codigo y la consulta es correcta. El dia que
- * entren los cinco, dos codigos iguales de sistemas distintos hacen que el {@code single()} de la
- * primera rama <b>reviente</b>, y no en silencio: sale como un error del guardia en cada peticion a
- * esa opcion. Quien decide de que sistema es el acceso que se comprueba —y por tanto si el puerto
- * gana un parametro o si el codigo pasa a llevar el sistema dentro— es la etapa 2. No se elige
- * ahora ni se tapa con un {@code LIMIT 1}: elegir la primera fila seria autorizar contra el permiso
- * de otro sistema, que es peor que fallar.
+ * <p>Ese dia es este: la implantacion siembra ahora las 160 opciones de los cinco. La consulta
+ * acota con {@code a.sistema = 'identidad'}, y esa constante es la decision: <b>el guardia de un
+ * sistema solo mira sus propias opciones</b>. El puerto que implementa —{@link
+ * kamayuk.identidad.autorizacion.ComprobadorDeAcceso#autoriza}— recibe el codigo y no el sistema, y
+ * <b>no se le anade el parametro</b>: en los otros cuatro esa pregunta no existe —cada uno tiene un
+ * solo catalogo— y anadirselo obligaria a los cuatro a pasar una constante que ya conocen. Lo que
+ * autoriza aqui es el permiso sobre una pantalla de <b>aqui</b>; el permiso sobre una pantalla de
+ * {@code caja} lo comprueba el guardia de {@code caja}, contra su propia copia local (D-N5).
+ *
+ * <p>Lo que cuesta queda dicho: si algun dia este sistema publicara un endpoint cuyo acceso fuera
+ * de otro catalogo, este guardia le negaria todo. No hay ninguno —{@code CatalogoDelSistemaTest}
+ * exige que los {@code @RequiereAcceso} de {@code src/main} sean exactamente las seis opciones de
+ * este sistema— y esa prueba es lo que lo mantiene cierto.
  */
 @Component
 public class ComprobadorDeAccesoJdbc extends RepositorioJdbc implements ComprobadorDeAcceso {
+
+    /**
+     * De que catalogo son las opciones que este guardia mira: las de <b>este</b> sistema.
+     *
+     * <p>Es una constante y no un parametro del puerto: ver el epigrafe de la cabecera. Coincide
+     * con {@code SistemasDelProducto.IDENTIDAD} y no se importa de alli a proposito — ese tipo es
+     * del nucleo, y este modulo no depende del nucleo (ni debe: el guardia tiene que poder
+     * autorizar aunque el contexto acotado no este en el classpath, que es lo que hace que los
+     * otros cuatro sistemas puedan copiar esta clase tal cual).
+     */
+    private static final String SISTEMA_PROPIO = "identidad";
 
     public ComprobadorDeAccesoJdbc(JdbcClient jdbc) {
         super(jdbc);
@@ -80,7 +96,8 @@ public class ComprobadorDeAccesoJdbc extends RepositorioJdbc implements Comproba
                         + "  (SELECT p."
                         + columna
                         + "     FROM permiso p"
-                        + "     JOIN acceso a ON a.id = p.acceso_id AND a.codigo = :acceso"
+                        + "     JOIN acceso a ON a.id = p.acceso_id"
+                        + "                   AND a.sistema = :sistema AND a.codigo = :acceso"
                         + "     JOIN usuario u ON u.id = p.usuario_id"
                         + "    WHERE u.cuenta = :usuario),"
                         // 2. Si no la hay: la union de los grupos vigentes.
@@ -92,7 +109,8 @@ public class ComprobadorDeAccesoJdbc extends RepositorioJdbc implements Comproba
                         + "                  AND (g.vigencia_desde IS NULL OR g.vigencia_desde <= :fecha)"
                         + "                  AND (g.vigencia_hasta IS NULL OR g.vigencia_hasta >= :fecha)"
                         + "      JOIN permiso p ON p.grupo_id = g.id"
-                        + "      JOIN acceso a ON a.id = p.acceso_id AND a.codigo = :acceso AND a.activo"
+                        + "      JOIN acceso a ON a.id = p.acceso_id AND a.activo"
+                        + "                    AND a.sistema = :sistema AND a.codigo = :acceso"
                         + "     WHERE u.cuenta = :usuario AND p."
                         + columna
                         + "  ), false)"
@@ -109,6 +127,7 @@ public class ComprobadorDeAccesoJdbc extends RepositorioJdbc implements Comproba
         return Boolean.TRUE.equals(
                 jdbc().sql(sql)
                         .param("usuario", usuario)
+                        .param("sistema", SISTEMA_PROPIO)
                         .param("acceso", acceso)
                         .param("fecha", fecha)
                         .query(Boolean.class)

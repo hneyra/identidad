@@ -228,19 +228,27 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
                     "tasa");
 
     /**
-     * Las tablas propias de `identidad`: <b>ninguna</b>, y esa es la afirmacion.
+     * Las tablas propias de `identidad`: <b>una</b> desde la etapa 2, y es la que su javadoc
+     * anticipaba.
      *
-     * <p>Este sistema es el dueño de la autorizacion (ADR-0039), pero sus ocho tablas —{@code
-     * municipalidad}, {@code usuario}, {@code grupo}, {@code miembro}, {@code modulo_sistema},
-     * {@code acceso}, {@code permiso} y {@code sesion}— <b>siguen en {@link #REPLICADAS} a
-     * proposito</b>: estan en los cinco baselines (ADR-0032) y los cinco las leen para autorizar.
-     * Una tabla en `DE_IDENTIDAD` significaria «leerla desde otro sistema es cruzar la frontera», y
-     * hoy leerla es exactamente lo que los otros cuatro tienen que hacer.
+     * <p>Las ocho de la autorizacion —{@code municipalidad}, {@code usuario}, {@code grupo}, {@code
+     * miembro}, {@code modulo_sistema}, {@code acceso}, {@code permiso} y {@code sesion}— <b>siguen
+     * en {@link #REPLICADAS} a proposito</b>, aunque este sistema sea su dueño (ADR-0039): estan en
+     * los cinco baselines (ADR-0032) y los cinco las leen para autorizar. Marcarlas de `identidad`
+     * significaria «leerlas desde otro sistema es cruzar la frontera», y leerlas es exactamente lo
+     * que los otros cuatro tienen que hacer — pondria en rojo el {@code ComprobadorDeAccesoJdbc} de
+     * los cuatro. Lo que la etapa 2 vigila es la ESCRITURA, y eso no lo distingue una tabla en el
+     * reparto: lo hace el escaner de AC-5, que vive en {@code comun-verificaciones}.
      *
-     * <p>Se declara vacia y no se omite: es el sitio donde entra la primera tabla que sea solo de
-     * aqui, y quien la escriba tiene que decidir a la vez que le pasa a los cuatro lectores.
+     * <p><b>{@code identidad_evento} si es de aqui</b>, y es la primera. Lo que este sitio pedia
+     * decidir —«que le pasa a los cuatro lectores»— tiene respuesta: no la leen. El buzon se sirve
+     * por HTTP en la etapa 3, asi que un {@code JOIN} contra el desde otro sistema no es una
+     * lectura legitima que haya que permitir, es la que hay que ver. Declararla aqui es lo que hace
+     * que se vea: sin la entrada, el reparto la da por «replicada» —{@code getOrDefault(tabla,
+     * SISTEMA_REPLICADO)}— y el escaner de la regla 11 <b>deja de mirarla</b>, en verde (la leccion
+     * de R-N).
      */
-    private static final Set<String> DE_IDENTIDAD = Set.of();
+    private static final Set<String> DE_IDENTIDAD = Set.of("identidad_evento");
 
     private static final Set<String> REPLICADAS =
             Set.of(
@@ -334,6 +342,10 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
                 "auditoria",
                 "documento_emitido",
                 "grupo",
+                // El buzon de salida (`V2`). Un evento borrado es un hecho que los otros cuatro
+                // no recibiran nunca y del que no queda rastro de que se emitio: la copia del
+                // vecino se queda desatrasada y nada dice por que.
+                "identidad_evento",
                 "miembro",
                 "modulo_sistema",
                 "municipalidad",
@@ -348,6 +360,14 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      *
      * <p>{@code auditoria}, por ADR-0008 —quien puede modificarla puede borrar su rastro—.
      *
+     * <p><b>Y desde la etapa 2, {@code identidad_evento}</b>, por un motivo propio: no tiene una
+     * sola columna que cambie despues de escribirse. Es un OUTBOX y no lleva {@code estado} —tiene
+     * CUATRO consumidores y un solo estado no puede decir «entregado a `caja` y no a `rentas`»; el
+     * acuse por consumidor es de la etapa 3 y va en otra tabla—, asi que un {@code UPDATE} sobre
+     * ella solo puede ser una cosa: reescribir un hecho ya publicado. El {@code GRANT} de {@code
+     * V2} tampoco se lo da, y son dos guardas independientes: el motor lo niega con un 42501 que no
+     * dice cual de las dos fue, y el escaner lo niega en el build nombrando archivo y linea (#435).
+     *
      * <p><b>Las otras doce NO estan, y no es un olvido.</b> Las siete de la copia local reciben un
      * {@code UPDATE} legitimo y es el acto que este sistema existe para ejecutar: dar de baja a un
      * usuario es {@code habilitado = false}, cerrar una sesion es escribir su {@code fin}, quitar a
@@ -360,7 +380,7 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      */
     @Override
     public Set<String> tablasInmutables() {
-        return Set.of("auditoria");
+        return Set.of("auditoria", "identidad_evento");
     }
 
     /** Ninguna: aqui no se compone ningun area a mano, porque no hay predios que medir (#607). */
@@ -394,11 +414,22 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
                 // `ComprobadorDeAccesoJdbc`
                 // y las reglas pasarian en verde sin haber mirado el unico adaptador que hay.
                 "kamayuk.identidad.seguridad.dominio",
-                "kamayuk.identidad.seguridad.aplicacion",
-                "kamayuk.identidad.seguridad.infraestructura");
-        // `kamayuk.identidad.nucleo` NO se nombra, y tiene que entrar aqui en la etapa 2: hoy solo
-        // tiene su `package-info.java`, asi que ArchUnit no importa ni un tipo de ese paquete y
-        // exigirlo pondria esta guarda en rojo el primer dia por una ausencia que es correcta.
+                "kamayuk.identidad.seguridad.infraestructura",
+                // Las cuatro capas del contexto acotado, que la etapa 2 lleno. Se nombran las
+                // cuatro y no el paquete raiz: sin la de `infraestructura.web`, quitarle a
+                // `kamayuk-identidad-aplicacion` la dependencia del modulo —una linea del build—
+                // dejaria a ArchUnit sin ver ni un controlador y las CINCO reglas de capa web
+                // pasarian en verde sin haber mirado ninguno. Es lo que la etapa 1 anoto que
+                // habria que hacer aqui.
+                //
+                // `kamayuk.identidad.seguridad.aplicacion` YA NO ESTA porque ese paquete ya no
+                // existe: la implantacion se mudo a `nucleo.aplicacion` para poder escribir por
+                // los casos de uso (AC-6), y una entrada que nombra un paquete inexistente no
+                // exime ni exige nada — se queda esperando al que herede el nombre (#27).
+                "kamayuk.identidad.nucleo.dominio",
+                "kamayuk.identidad.nucleo.aplicacion",
+                "kamayuk.identidad.nucleo.infraestructura",
+                "kamayuk.identidad.nucleo.infraestructura.web");
     }
 
     /**
@@ -406,24 +437,25 @@ public final class ConfiguracionDeIdentidad implements ConfiguracionDeLasVerific
      * numero de verdad: si manana desapareciera medio repositorio, el escaner lo diria en vez de
      * quedarse en verde.
      *
-     * <p><b>Medido en la etapa 1 y redondeado a la baja</b>: {@code src/main} tiene hoy 109
-     * archivos {@code .java} y 2 {@code .sql} —el baseline y {@code crear-roles.sql}—, o sea 111
-     * que el escaner recorre. Se declara 100. Es mas bajo que el de {@code normativa} (120) porque
-     * aqui no estan sus dos modulos de negocio, y sube con la etapa 2; lo que no puede es bajar sin
-     * que alguien lo note.
+     * <p><b>Remedido en la etapa 2 y redondeado a la baja</b>: {@code src/main} tiene hoy
+     * <b>143</b> archivos entre {@code .java} y {@code .sql} —eran 111 en la etapa 1—, y el salto
+     * es el contexto acotado: las once escrituras, sus dos repositorios, los cuatro controladores,
+     * el buzon y {@code V2}. Se declara <b>130</b>. La etapa 1 declaro 100 y dijo que subiria con
+     * esta; lo que no puede es bajar sin que alguien lo note.
      */
     @Override
     public int minimoDeFuentesDeProduccion() {
-        return 100;
+        return 130;
     }
 
     /**
      * Mismo motivo que el minimo de arriba, medido y redondeado a la baja: {@code src/test} y
-     * {@code src/testFixtures} suman hoy 59 archivos. Se declara 40, igual que {@code normativa}.
+     * {@code src/testFixtures} suman hoy <b>70</b> archivos —eran 59 en la etapa 1—, y los once que
+     * entran son los del contexto acotado. Se declara <b>55</b>; la etapa 1 declaraba 40.
      */
     @Override
     public int minimoDePruebas() {
-        return 40;
+        return 55;
     }
 
     /**

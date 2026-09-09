@@ -1,0 +1,35 @@
+{
+  "sistema": "identidad",
+  "modulos": [
+    {
+      "codigo": "SEGURIDAD",
+      "nombre": "Seguridad",
+      "opciones": [
+        {
+          "codigo": "modulos",
+          "nombre": "Modulos del sistema"
+        },
+        {
+          "codigo": "usuarios",
+          "nombre": "Usuarios del sistema"
+        },
+        {
+          "codigo": "grupos",
+          "nombre": "Grupos de usuarios"
+        },
+        {
+          "codigo": "accesos",
+          "nombre": "Accesos y politicas"
+        },
+        {
+          "codigo": "miembros",
+          "nombre": "Gestion de miembros"
+        },
+        {
+          "codigo": "permisos",
+          "nombre": "Permisos y niveles de accesibilidad"
+        }
+      ]
+    }
+  ]
+}
