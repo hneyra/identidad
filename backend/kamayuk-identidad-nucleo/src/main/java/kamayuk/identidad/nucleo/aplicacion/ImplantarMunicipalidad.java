@@ -9,6 +9,7 @@ import kamayuk.identidad.compartido.TenantContext;
 import kamayuk.identidad.dominio.MunicipalidadId;
 import kamayuk.identidad.dominio.Observacion;
 import kamayuk.identidad.nucleo.dominio.CatalogoUnido;
+import kamayuk.identidad.nucleo.dominio.Consumidor;
 import kamayuk.identidad.nucleo.dominio.Grupo;
 import kamayuk.identidad.nucleo.dominio.SistemasDelProducto;
 import kamayuk.identidad.nucleo.dominio.Usuario;
@@ -78,7 +79,7 @@ import org.springframework.stereotype.Component;
  * INSERT}, en una conexion que se abre y se cierra. Todo lo demas va por el camino normal de la
  * aplicacion, como {@code kamayuk_app} y con su auditoria.
  *
- * <h2>Dos grupos, y el segundo nace SIN MIEMBROS a proposito</h2>
+ * <h2>Dos grupos, y el segundo nace con las cuatro cuentas de servicio dentro</h2>
  *
  * <p>{@code rentas} crea dos —administracion y {@code Seguridad}—; aqui el de administracion y,
  * desde la <b>etapa 3</b>, «Consumidores del buzon». El de {@code rentas} que no se copia es la
@@ -86,27 +87,61 @@ import org.springframework.stereotype.Component;
  * esa delegacion es una decision de la municipalidad: crearla vacia desde el despliegue seria
  * decidir por ella.
  *
- * <p>El grupo de administracion recibe los siete privilegios sobre las <b>161</b> opciones de los
- * cinco catalogos, que es lo que hace que el primer dia haya alguien que pueda configurar todo lo
- * demas.
+ * <p>El grupo de administracion recibe los siete privilegios sobre las <b>157</b> opciones de los
+ * cinco catalogos —la cifra que {@code CatalogoUnidoTest} mide—, que es lo que hace que el primer
+ * dia haya alguien que pueda configurar todo lo demas.
  *
  * <p>«Consumidores del buzon» recibe <b>una sola opcion</b>, {@code (identidad, eventos)}, y solo
  * {@code LECTURA} y {@code REGISTRO} — que son exactamente los dos privilegios que {@code
  * EventosController} exige. No recibe {@code ELIMINACION} ni {@code ESPECIAL} porque no hay nada
  * que borrar: el buzon es inmutable y su acuse tambien.
  *
- * <p><b>Y nace sin ningun miembro, que es lo que hay que saber</b>: afiliar a el las cuatro cuentas
- * de servicio —{@code service-account-kamayuk-<sistema>-servicio-<ubigeo>}— es de la <b>etapa 4</b>
- * y del despliegue, porque hoy ninguna de las cuatro tiene fila en {@code usuario}. Se crea igual,
- * y no se deja para entonces, por dos motivos: el grupo con su permiso es lo unico de esa
- * afiliacion que este repositorio puede decidir —a quien se afilia lo decide quien despliegue—, y
- * un grupo vacio con el permiso puesto convierte esa etapa en un {@code POST} de afiliacion, en vez
- * de en «alguien tiene que acordarse de crear un grupo y darle exactamente esta opcion y no otra».
+ * <p><b>Y desde la etapa 4 nace CON sus cuatro miembros</b>, que es lo contrario de lo que hacia la
+ * etapa 3 y hay que decir por que cambio. Aquella lo dejaba vacio razonando que «a quien se afilia
+ * lo decide quien despliegue»; medido el 2026-09-09 con las cinco aplicaciones levantadas, <b>no lo
+ * decide nadie</b>: {@code reconciliar-identidades.sh servicios} crea el cliente confidencial de
+ * cada satelite en el emisor —o sea que el consumidor <b>consigue su token</b>—, pero la cuenta
+ * {@code service-account-kamayuk-<sistema>-servicio-<ubigeo>} no tiene fila en {@code usuario} de
+ * esta base, asi que los cuatro reciben <b>403</b> «La cuenta «…» no esta dada de alta en este
+ * sistema» y la pasada del consumidor de cada implantacion muere con {@code IdentidadNoContesta:
+ * identidad contesto 403 al leer el buzon}. Para poder medir AC-6 hubo que darlas de alta <b>a
+ * mano</b> con el token del administrador. Un grupo vacio no es «pendiente de que alguien decida»:
+ * es la copia local de los cuatro sistemas congelada como la dejo su implantacion, <b>sin un solo
+ * error que lo diga</b> — el defecto exacto que la etapa 4 existe para cerrar.
+ *
+ * <p>Lo que se afilia no es una eleccion de esta clase: son <b>los cuatro de {@link
+ * Consumidor}</b>, que es el mismo enumerado del que sale quien puede leer el buzon y el que {@code
+ * ConsumidorTest} ata al {@code CHECK} de {@code V3}. Derivarlo de {@code
+ * SistemasDelProducto.TODOS} menos {@code identidad} habria sido una segunda lista con la misma
+ * verdad, y la que se quedaria vieja seria justo la que da de alta las cuentas. <b>{@code
+ * identidad} no esta</b>, y no por omision: este sistema no se consume a si mismo —lo que el buzon
+ * publica es lo que esta misma base acaba de escribir—, asi que su cuenta de servicio no tendria
+ * nada que leer y su acuse retiraria un evento que nadie ha aplicado.
+ *
+ * <p><b>Se dan de alta habilitadas y con {@link kamayuk.identidad.dominio.Vigencia#SIEMPRE}</b>, y
+ * las dos cosas se deciden aqui. Habilitadas, porque una cuenta de servicio que naciera
+ * deshabilitada dejaria la replica parada desde el primer minuto con el mismo sintoma mudo que esto
+ * viene a cerrar. Y sin fecha de fin, porque una vigencia puesta por el despliegue caduca un dia
+ * que nadie recuerda y lo que se para entonces son <b>los cuatro sistemas a la vez</b>, sin que
+ * nadie haya decidido nada: retirarle el acceso a un consumidor es un acto —desafiliarlo del grupo,
+ * o retirarle la credencial en el emisor—, con su observacion y su fila de auditoria, no un
+ * temporizador. Es la misma razon por la que el administrador tampoco nace con vigencia.
  *
  * <h2>Idempotente, entera</h2>
  *
  * <p>Se ejecuta en cada despliegue. Lo que ya existe se queda como esta —con los permisos que
  * alguien haya configurado despues—, y lo que falta se crea. Nunca borra.
+ *
+ * <p><b>Las cuatro cuentas de servicio no son una excepcion</b>: la cuenta repetida la rechaza
+ * {@code registrarUsuario} con {@code CuentaRepetida} y aqui eso no es un error sino el segundo
+ * despliegue —se atrapa y se lee la que hay, igual que con el administrador—, y {@code afiliar} es
+ * un {@code ON CONFLICT … DO UPDATE} que <b>reactiva</b> la fila. Reafiliar a proposito y no
+ * saltarselo si ya esta: es lo que hace que un despliegue repare a un consumidor al que alguien
+ * desafilio, que es la unica forma que tiene de repararse. Lo que cuesta esta dicho y es lo mismo
+ * que ya costaba la afiliacion del administrador: <b>el estado no crece y los eventos si</b>
+ * —repetir la afiliacion es otro acto, con su observacion—, y aplicar dos veces un {@code
+ * MIEMBRO_AFILIADO} en la copia de un satelite es idempotente porque alli tambien es un {@code
+ * upsert}.
  */
 @Component
 @Profile("batch")
@@ -120,9 +155,9 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
     public static final String GRUPO_DE_ADMINISTRACION = "Administracion del sistema";
 
     /**
-     * El grupo del que colgara el permiso de las cuatro cuentas de servicio (etapa 3).
+     * El grupo del que cuelga el permiso de las cuatro cuentas de servicio (etapa 3).
      *
-     * <p>Nace <b>vacio</b>: ver el epigrafe de la cabecera.
+     * <p>Desde la etapa 4 nace <b>con sus cuatro miembros</b>: ver el epigrafe de la cabecera.
      */
     public static final String GRUPO_DE_CONSUMIDORES = "Consumidores del buzon";
 
@@ -189,7 +224,7 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
 
             int nuevos = sembrador.sembrar(catalogo, porQue);
             int otorgados = darDeAltaAlAdministrador(catalogo, porQue);
-            grupoDeConsumidoresDelBuzon(porQue);
+            int consumidores = grupoDeConsumidoresDelBuzon(porQue);
 
             // El regimen se registra aunque sea una sola palabra: es lo unico del resultado que no
             // se puede comprobar mirando pantallas. Una instalacion que se creia de demostracion y
@@ -197,7 +232,7 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
             log.info(
                     "Municipalidad {} lista en identidad ({}): id {}, {} accesos nuevos de los {}"
                             + " del catalogo unido, {} permisos otorgados al grupo '{}',"
-                            + " administrador '{}'",
+                            + " administrador '{}', {} cuentas de servicio afiliadas a '{}'",
                     datos.ubigeo(),
                     datos.esDemostracion() ? "DEMOSTRACION" : "instalacion real",
                     municipalidadId,
@@ -205,7 +240,9 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
                     catalogo.opciones().size(),
                     otorgados,
                     GRUPO_DE_ADMINISTRACION,
-                    datos.administrador());
+                    datos.administrador(),
+                    consumidores,
+                    GRUPO_DE_CONSUMIDORES);
         } finally {
             OrigenContext.limpiar();
             TenantContext.limpiar();
@@ -264,8 +301,8 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
     }
 
     /**
-     * El grupo desde el que los cuatro sistemas leeran el buzon, con su unica opcion y sin
-     * miembros.
+     * El grupo desde el que los cuatro sistemas leen el buzon, con su unica opcion y sus cuatro
+     * cuentas de servicio.
      *
      * <p>Va <b>despues</b> del administrador y no antes, y el orden no es libre: {@code
      * AdministrarPermisos} comprueba tras cada escritura que quede alguien capaz de administrar
@@ -273,8 +310,15 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
      * administracion tiene su {@code (identidad, permisos)}. Puesto antes, este {@code
      * fijarParaGrupo} seria el primero de la municipalidad y se rechazaria con un 409 que hablaria
      * de lo contrario de lo que pasa.
+     *
+     * <p>Y el permiso va antes que los miembros por lo mismo que el grupo va antes que el permiso:
+     * afiliar a un grupo que todavia no puede leer el buzon dejaria una ventana —corta, dentro de
+     * la misma implantacion— en la que las cuatro cuentas existen y no autorizan. No cuesta nada
+     * ponerlo en este orden y ahorra tener que razonar sobre esa ventana.
+     *
+     * @return cuantas cuentas de servicio quedaron afiliadas
      */
-    private void grupoDeConsumidoresDelBuzon(Observacion porQue) {
+    private int grupoDeConsumidoresDelBuzon(Observacion porQue) {
         Grupo grupo;
         try {
             grupo =
@@ -288,12 +332,45 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
         } catch (AdministrarSeguridad.GrupoRepetido yaEstaba) {
             grupo = administrar.grupoPorNombre(GRUPO_DE_CONSUMIDORES).orElseThrow(() -> yaEstaba);
         }
+        long grupoId = exigirIdentificador(grupo.id(), "grupo");
         permisos.fijarParaGrupo(
-                exigirIdentificador(grupo.id(), "grupo"),
-                SistemasDelProducto.IDENTIDAD,
-                ACCESO_DEL_BUZON,
-                LEER_Y_ACUSAR,
-                porQue);
+                grupoId, SistemasDelProducto.IDENTIDAD, ACCESO_DEL_BUZON, LEER_Y_ACUSAR, porQue);
+
+        int afiliadas = 0;
+        for (Consumidor consumidor : Consumidor.values()) {
+            Usuario cuenta = cuentaDeServicio(consumidor, porQue);
+            administrar.afiliar(grupoId, exigirIdentificador(cuenta.id(), "usuario"), porQue);
+            afiliadas++;
+        }
+        return afiliadas;
+    }
+
+    /**
+     * La fila de {@code usuario} de una cuenta de servicio, o la que ya estaba.
+     *
+     * <p>Es un alta como cualquier otra —pasa por {@link AdministrarSeguridad}, exige su
+     * observacion, asienta auditoria y <b>emite su evento</b>— y eso ultimo es deliberado: los
+     * cuatro satelites reciben por el buzon el alta y la afiliacion de las cuatro cuentas, igual
+     * que reciben las del administrador. No sobra: cada uno autoriza contra <b>su</b> copia local,
+     * asi que el dia que una operacion de un satelite la pida un proceso suyo con esta cuenta, su
+     * guardia tiene que conocerla — y sobre todo, una copia que no las tiene y una que si son
+     * distinguibles, que es lo que hace comprobable el arranque en frio.
+     *
+     * <p><b>Sin correo y sin {@code sujetoOidc}</b>: no hay persona detras a la que escribir, y el
+     * enlace con el emisor lo hace la cuenta, que es justamente lo que se compone aqui.
+     */
+    private Usuario cuentaDeServicio(Consumidor consumidor, Observacion porQue) {
+        String cuenta = consumidor.cuentaDeServicio(datos.ubigeo());
+        try {
+            return administrar.registrarUsuario(
+                    Usuario.nuevo(
+                            cuenta,
+                            "Cuenta de servicio de " + consumidor.sistema() + " (buzon)",
+                            null),
+                    porQue);
+        } catch (AdministrarSeguridad.CuentaRepetida yaEstaba) {
+            return administrar.usuarioPorCuenta(cuenta).orElseThrow(() -> yaEstaba);
+        }
     }
 
     /**

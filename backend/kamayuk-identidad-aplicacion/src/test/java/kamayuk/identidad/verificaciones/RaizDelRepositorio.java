@@ -11,11 +11,11 @@ import java.nio.file.Path;
  * iguales y acaban discrepando en el caso raro, y entonces una prueba lee un archivo y otra lee
  * otro.
  *
- * <p><b>En la etapa 1 no lo consume nadie todavia</b>, y se dice en vez de dejarlo parecer usado:
- * este repositorio no publica ninguna operacion, asi que no tiene ni contrato que comprometer ni
- * `formas-de-la-api.json` que comparar. Se conserva porque la primera de esas dos pruebas que
- * llegue lo necesita, y escribir un cuarto recorrido a mano es exactamente lo que esta clase existe
- * para impedir.
+ * <p><b>En la etapa 1 no lo consumia nadie</b>, y se decia en vez de dejarlo parecer usado: este
+ * repositorio no publicaba ninguna operacion. Desde la etapa 3 lo consume {@link
+ * ContratosDeLosConsumidoresTest}, que busca a los clones hermanos desde aqui y lee las cuatro
+ * pruebas de contrato por su ruta. Sigue sin haber `formas-de-la-api.json` que comparar: ese
+ * archivo solo existe en {@code rentas}, que lo deriva de su contrato OpenAPI.
  *
  * <p><b>Se busca `backend/settings.gradle.kts` y no un `.git` ni un `README.md`</b>, y las tres
  * decisiones estan medidas. `.git` <b>es un archivo</b> en un {@code git worktree} —de ahi el

@@ -26,7 +26,7 @@ import org.jspecify.annotations.Nullable;
  *   <li><b>Una excepcion aparece aunque no otorgue nada.</b> Es la unica forma de distinguir «se le
  *       nego expresamente» de «nunca lo tuvo», y negar es la mitad del motivo por el que la
  *       excepcion existe. Un acceso sin excepcion y sin nada del grupo, en cambio, no produce fila:
- *       serian 134 filas vacias por usuario.
+ *       serian 157 filas vacias por usuario, una por opcion del catalogo unido.
  *   <li><b>{@code grupoId} es nulo cuando el permiso viene de mas de un grupo.</b> La union de dos
  *       grupos vigentes no tiene <b>un</b> grupo que nombrar, y elegir el primero por orden de id
  *       daria un dato plausible y equivocado. Nulo ahi significa «no hay uno solo», y con {@code

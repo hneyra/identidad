@@ -104,11 +104,9 @@ class ImplantacionEmiteSusEventosTest {
                                 + " con un 409 y la implantacion entera se desharia")
                 .isEqualTo(1);
 
-        // El grupo de la etapa 3 existe, con SU opcion y sin miembros. Las tres cosas: sin la
-        // primera nadie podria consumir el buzon; sin la segunda —si recibiera los siete sobre
-        // todo, como el de administracion— seria un segundo administrador de la municipalidad
-        // creado por el despliegue; y la tercera es lo que dice que afiliar las cuatro cuentas de
-        // servicio es de la etapa 4 y no un olvido de esta.
+        // El grupo de la etapa 3 existe y tiene SU opcion: sin ella nadie podria consumir el
+        // buzon, y con los siete sobre todo —como el de administracion— seria un segundo
+        // administrador de la municipalidad creado por el despliegue.
         assertThat(
                         arnes.filas(
                                 "SELECT a.sistema || ':' || a.codigo FROM permiso p"
@@ -122,17 +120,51 @@ class ImplantacionEmiteSusEventosTest {
                         ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES)
                 .containsExactly("identidad:eventos");
 
-        assertThat(
-                        arnes.contar(
-                                "SELECT count(*) FROM miembro m JOIN grupo g ON g.id = m.grupo_id"
-                                        + " WHERE g.nombre = '"
-                                        + ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES
-                                        + "'"))
+        // Y desde la etapa 4 tiene sus CUATRO miembros, que son las cuatro cuentas de servicio.
+        // Medido con las cinco aplicaciones levantadas: sin ellas los cuatro consumidores reciben
+        // 403 «no esta dada de alta en este sistema» y su copia local se queda congelada sin que
+        // nada lo diga. Se comparan por su NOMBRE y no se cuentan: cuatro filas con la cuenta mal
+        // compuesta darian la misma cifra y ningun token las nombraria.
+        assertThat(cuentasDelGrupoDeConsumidores())
                 .as(
-                        "y nace SIN MIEMBROS: afiliar las cuatro cuentas de servicio es de la etapa"
-                                + " 4 y del despliegue, porque hoy ninguna tiene fila en `usuario`."
-                                + " Un miembro aqui hoy seria una cuenta que no existe")
-                .isZero();
+                        "[la implantacion es lo unico que puede afiliarlas: el emisor crea el"
+                                + " cliente confidencial de cada satelite, asi que el consumidor"
+                                + " consigue su token y llega hasta el guardia, y ahi no hay fila que"
+                                + " lo conozca. Sin esto los cuatro reciben 403 y su copia local se"
+                                + " queda como la dejo su implantacion, en silencio] y `identidad` NO"
+                                + " esta: no se consume a si mismo")
+                .containsExactly(
+                        "service-account-kamayuk-caja-servicio-" + UBIGEO,
+                        "service-account-kamayuk-catastro-servicio-" + UBIGEO,
+                        "service-account-kamayuk-normativa-servicio-" + UBIGEO,
+                        "service-account-kamayuk-rentas-servicio-" + UBIGEO);
+
+        // Y sus altas y sus afiliaciones SALEN POR EL BUZON, como las del administrador: cada uno
+        // de los cuatro satelites recibe las cuatro cuentas y las cuatro afiliaciones. Son cinco y
+        // cinco —el administrador mas los cuatro consumidores— y esa es la cifra que la etapa 4
+        // mueve: la implantacion emitia 1 USUARIO_DADO_DE_ALTA y 1 MIEMBRO_AFILIADO, y emite 5 y 5.
+        assertThat(arnes.contar(contarEventos(TipoDeEventoDeIdentidad.USUARIO_DADO_DE_ALTA)))
+                .as("el administrador y las cuatro cuentas de servicio")
+                .isEqualTo(5);
+        assertThat(arnes.contar(contarEventos(TipoDeEventoDeIdentidad.MIEMBRO_AFILIADO)))
+                .as("su afiliacion al grupo de administracion, y las cuatro al del buzon")
+                .isEqualTo(5);
+
+        // Y cuantos son en total, que es la cifra que la etapa 4 mueve y que hay que poder citar:
+        // los permisos (una opcion del catalogo unido, mas la del grupo del buzon), los dos grupos,
+        // las cinco altas y las cinco afiliaciones. Con el catalogo de hoy —157 opciones— son 170,
+        // y antes de que la implantacion sembrara las cuatro cuentas de servicio eran 162. No se
+        // escribe 170 a mano: se compone de la cifra del catalogo, para que el dia que un sistema
+        // estrene una pantalla esto siga siendo cierto sin tocarlo.
+        assertThat(arnes.contar("SELECT count(*) FROM identidad_evento"))
+                .as(
+                        "[cada uno de estos hechos viaja a los CUATRO satelites y es lo que su"
+                                + " copia local aplica. Si esta cifra baja, alguien dejo de emitir"
+                                + " algo que la implantacion escribe, y el sintoma no esta aqui:"
+                                + " esta en la copia de los cuatro, que se queda sin ello]"
+                                + " %d permisos + 2 grupos + 5 usuarios + 5 afiliaciones",
+                        opciones + 1)
+                .isEqualTo(opciones + 1 + 2 + 5 + 5);
 
         segundoDespliegue();
     }
@@ -155,8 +187,10 @@ class ImplantacionEmiteSusEventosTest {
                 .as("un segundo despliegue no crea un segundo permiso sobre la misma opcion")
                 .isEqualTo(permisosTrasLaPrimera);
         assertThat(arnes.contar("SELECT count(*) FROM usuario"))
-                .as("ni un segundo administrador")
-                .isEqualTo(1);
+                .as(
+                        "ni un segundo administrador, ni una quinta cuenta de servicio: siguen"
+                                + " siendo las CINCO que la implantacion da de alta")
+                .isEqualTo(5);
         assertThat(arnes.contar("SELECT count(*) FROM grupo"))
                 .as(
                         "ni un segundo grupo: siguen siendo los DOS que la implantacion crea, «%s»"
@@ -171,6 +205,25 @@ class ImplantacionEmiteSusEventosTest {
         assertThat(arnes.contar("SELECT count(*) FROM identidad_evento"))
                 .as("el buzon guarda actos, no estados: repetir la implantacion son mas actos")
                 .isGreaterThan(eventosTrasLaPrimera);
+
+        // Y las cuatro siguen afiliadas y ACTIVAS tras el segundo despliegue. No es lo mismo que
+        // «no se duplican»: `afiliar` es un upsert que reactiva, asi que lo que esto mide es que
+        // reimplantar REPARA a un consumidor al que alguien desafilio, que es la unica forma que
+        // tiene de repararse.
+        assertThat(cuentasDelGrupoDeConsumidores())
+                .as("las cuatro siguen dentro del grupo despues del segundo despliegue")
+                .hasSize(4);
+    }
+
+    /** Las cuentas afiliadas y activas del grupo del buzon, por su nombre. */
+    private List<String> cuentasDelGrupoDeConsumidores() throws SQLException {
+        return arnes.filas(
+                "SELECT u.cuenta FROM usuario u"
+                        + " JOIN miembro m ON m.usuario_id = u.id AND m.activo"
+                        + " JOIN grupo g ON g.id = m.grupo_id"
+                        + " WHERE g.nombre = '"
+                        + ImplantarMunicipalidad.GRUPO_DE_CONSUMIDORES
+                        + "' ORDER BY 1");
     }
 
     private void implantar() {

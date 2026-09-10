@@ -134,6 +134,50 @@ class ConsumidorTest {
     }
 
     /** Y los cuatro son sistemas del producto: ninguno inventado. */
+    /**
+     * Componer y volver a analizar: las dos direcciones de la misma forma.
+     *
+     * <p>{@code clienteDeServicio} existe desde la etapa 4 porque la implantacion tiene que dar de
+     * alta la cuenta de servicio de cada consumidor, y componer esa forma en la implantacion habria
+     * sido escribirla dos veces. Lo que esto mide es que no se puedan separar: lo que se compone
+     * aqui es exactamente lo que {@code deAzp} admite, y la cuenta es ese cliente con el prefijo
+     * que el emisor le pone. Si se separaran, la implantacion daria de alta cuatro filas de {@code
+     * usuario} que ningun token nombra — y el sintoma es el 403 que la etapa 4 viene a cerrar, con
+     * una fila mas en la tabla.
+     */
+    @Test
+    @DisplayName("y la forma se compone y se vuelve a analizar: da el mismo consumidor")
+    void componerYAnalizarDanLoMismo() {
+        for (Consumidor consumidor : Consumidor.values()) {
+            String cliente = consumidor.clienteDeServicio("200105");
+            assertThat(Consumidor.deAzp(cliente)).isEqualTo(consumidor);
+            assertThat(consumidor.cuentaDeServicio("200105"))
+                    .as(
+                            "la cuenta es «service-account-» mas el cliente, que es como la nombra el"
+                                    + " emisor y lo que el guardia compara con `usuario.cuenta`")
+                    .isEqualTo("service-account-" + cliente);
+        }
+        assertThat(Consumidor.CAJA.cuentaDeServicio("200105"))
+                .as(
+                        "[medido el 2026-09-09 contra el emisor de verdad: este es el literal que"
+                                + " llega en el `preferred_username`, y el que salio en el 403 «La"
+                                + " cuenta «service-account-kamayuk-normativa-servicio-200105» no"
+                                + " esta dada de alta en este sistema»]")
+                .isEqualTo("service-account-kamayuk-caja-servicio-200105");
+    }
+
+    @Test
+    @DisplayName("y un ubigeo que no son seis digitos no compone una cuenta: se dice")
+    void unUbigeoQueNoLoEsSeDice() {
+        assertThat(catchThrowable(() -> Consumidor.RENTAS.clienteDeServicio("2001")))
+                .as(
+                        "dar de alta una cuenta que ningun token puede nombrar es peor que fallar:"
+                                + " la implantacion saldria en verde y los cuatro consumidores"
+                                + " seguirian recibiendo 403")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no tiene la forma");
+    }
+
     @Test
     @DisplayName("y los cuatro son sistemas del producto, y ninguno es identidad")
     void losCuatroSonSistemasDelProducto() {

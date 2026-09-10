@@ -18,6 +18,17 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testImplementation("org.springframework:spring-aop")
 
+    // SOLO EN PRUEBAS, y hace falta decir por que: `ComprobadorDeAccesoJdbc` —la implementacion
+    // del puerto que el guardia consulta— vive en `kamayuk-identidad-seguridad` a proposito,
+    // porque tiene que poder autorizar aunque este contexto acotado no este en el classpath (es la
+    // clase que los otros cuatro sistemas copian tal cual). Aqui se necesita para poder medir la
+    // etapa 4 de punta a punta: que las cuatro cuentas de servicio que la implantacion siembra
+    // pasan el guardia DE VERDAD. Escribir en la prueba un comprobador propio habria medido esa
+    // copia y no el que corre en produccion, que es exactamente lo que hace que una prueba de
+    // autorizacion no sirva. Es una arista de PRUEBAS: `main` de este modulo no ve `seguridad`, y
+    // Spring Modulith sigue verificando lo mismo.
+    testImplementation(project(":kamayuk-identidad-seguridad"))
+
     // MockMvc para las pruebas de frontera: transporte sin servidor, que es donde se ve que lo que
     // el controlador declara es lo que contesta.
     testImplementation("org.springframework:spring-test")
@@ -26,8 +37,10 @@ dependencies {
 
 // AC-4: el catalogo de accesos de los CINCO sistemas, copiado al jar.
 //
-// Son 160 opciones —134 de `rentas`, 16 de `catastro`, 6 de aqui, 3 de `caja` y 1 de
-// `normativa`— y esta base las siembra todas, porque lo que guarda es a quien se le concede cada
+// Son 157 opciones —130 de `rentas`, 16 de `catastro`, 7 de aqui, 3 de `caja` y 1 de
+// `normativa`; eran 160 al escribirse esto, 161 con `eventos` (etapa 3) y 157 desde que la etapa 4
+// retiro de `rentas` las cuatro de administracion que ya no sirve— y esta base las siembra todas,
+// porque lo que guarda es a quien se le concede cada
 // opcion de todos (ADR-0039). El de `rentas` se DERIVA de su catalogo del manual con
 // `docs/10-negocio/derivar-catalogo-de-rentas.mjs`; los otros cuatro estan transcritos de su
 // `CatalogoDelSistema.java`. Lo que impide que las cinco copias se separen de sus originales es la

@@ -7,16 +7,20 @@ import java.util.List;
  *
  * <h2>Por que aqui hay una lista y en {@code rentas} se lee un documento</h2>
  *
- * <p>{@code rentas} lee {@code docs/10-negocio/catalogo-de-opciones.md} —las 134 opciones del
- * manual— porque ese documento vive en su repositorio. Aqui no vive: leerlo obligaria a que el
- * build de {@code identidad} dependiera del clon de {@code rentas} <b>en produccion</b>, y no solo
- * en las pruebas. Lo que se hace en su lugar es lo que el inventario del corte ya decia: «cada
- * sistema siembra <b>su parte</b>».
+ * <p>{@code rentas} lee {@code docs/10-negocio/catalogo-de-opciones.md} —las opciones del manual,
+ * 134 hasta la etapa 3 y <b>130</b> desde la 4— porque ese documento vive en su repositorio. Aqui
+ * no vive: leerlo obligaria a que el build de {@code identidad} dependiera del clon de {@code
+ * rentas} <b>en produccion</b>, y no solo en las pruebas. Lo que se hace en su lugar es lo que el
+ * inventario del corte ya decia: «cada sistema siembra <b>su parte</b>».
  *
  * <p>El codigo, el nombre y el orden de las <b>seis primeras</b> estan transcritos de la seccion
  * {@code ## Seguridad} de {@code rentas/docs/10-negocio/catalogo-de-opciones.md}, que sigue siendo
- * la fuente del manual (cap. 4), y son <b>exactamente</b> las que la etapa 2 se lleva de alli: son
- * las pantallas con que se administra quien puede hacer que.
+ * la fuente del manual (cap. 4), y son las pantallas con que se administra quien puede hacer que.
+ * <b>{@code rentas} retiro CUATRO de ellas en la etapa 4 y no seis</b>, medido sobre su clon:
+ * {@code usuarios}, {@code grupos}, {@code miembros} y {@code permisos} se fueron con sus once
+ * escrituras, y {@code modulos} y {@code accesos} se quedaron alli ademas de estar aqui, porque son
+ * lecturas de la copia local que su interfaz pide para componer el menu. Un mismo codigo en dos
+ * sistemas es exactamente lo que el par {@code (sistema, codigo)} existe para admitir.
  *
  * <h2>La septima, {@code eventos}, NO sale del manual, y hay que decirlo</h2>
  *

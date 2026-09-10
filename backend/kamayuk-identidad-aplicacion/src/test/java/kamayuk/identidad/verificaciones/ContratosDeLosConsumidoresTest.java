@@ -12,47 +12,49 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Lo que sostiene los cuatro {@code @Disabled} de las pruebas de contrato.
+ * Lo que sostiene que las cuatro pruebas de contrato <b>corran</b>, y no solo que existan.
  *
- * <h2>Por que existe</h2>
+ * <h2>De donde viene</h2>
  *
- * <p>{@link ContratoConRentasTest} y sus tres hermanas estan desactivadas porque el archivo que
- * leen —{@code <consumidor>/docs/50-api/contratos-que-consume/identidad.json}— lo publica el
- * ingestor de cada consumidor, que es de la <b>etapa 4</b>. Se midio antes de decidirlo: {@code
- * ContratoDelConsumidor.leer} <b>lanza</b> nombrando el archivo <b>antes</b> de que la base
- * consulte {@code desajustesVivos()}, asi que ese gancho no puede declarar «el consumidor todavia
- * no publica su contrato» como deuda con nombre. El rojo literal de esa medicion:
+ * <p>En la etapa 3 esta clase afirmaba lo contrario: que <b>ningun</b> consumidor publicaba todavia
+ * {@code <consumidor>/docs/50-api/contratos-que-consume/identidad.json} y que {@link
+ * ContratoConRentasTest} y sus tres hermanas llevaban su {@code @Disabled}. Era la lista de trabajo
+ * de la etapa 4 escrita donde se pone roja sola, y se puso: el 2026-09-09, con los cuatro clones
+ * hermanos en su rama de la etapa 4, salio con «Expecting empty but was: ["rentas", "catastro",
+ * "normativa", "caja"]» — los cuatro a la vez, porque los cuatro consumidores se construyeron el
+ * mismo dia. Ese rojo es el que esta clase existia para producir, y su remedio es esta version.
  *
- * <pre>
- * No esta «…/rentas/docs/50-api/contratos-que-consume/identidad.json», asi que no se puede
- * comprobar que este backend siga cumpliendo lo que su consumidor espera.
- * </pre>
+ * <h2>Lo que afirma desde la etapa 4, y por que sigue haciendo falta</h2>
  *
- * <p>Una prueba desactivada sin nada que la reactive es una prueba borrada con mas lineas. Esto es
- * lo que la reactiva: <b>afirma que el archivo sigue sin existir</b>, de modo que el dia que un
- * consumidor lo publique esta guarda sale roja pidiendo que se quite el {@code @Disabled} que le
- * corresponde. No es una afirmacion sobre lo que este repositorio hace: es la lista de trabajo de
- * la etapa 4, escrita donde se pone roja sola.
+ * <p>Que los cuatro archivos <b>estan</b>, y que las cuatro pruebas que los leen <b>no llevan
+ * {@code @Disabled}</b>. Parece redundante con correr las cuatro, y no lo es: una prueba
+ * desactivada no falla, <b>se salta</b>, y JUnit lo cuenta como {@code SKIPPED} en un build que
+ * sigue en verde. Si alguien devolviera la anotacion a una de ellas —«mientras arreglo el
+ * contrato»— el buzon podria dejar de publicar un campo que ese consumidor lee sin que nada de este
+ * repositorio lo dijera. Y si un consumidor retirara su archivo, {@code ContratoDelConsumidor.leer}
+ * lanzaria nombrandolo desde su propia prueba; aqui se dice ademas <b>de quien</b> es y <b>que</b>
+ * hace falta, porque ese rojo cae en un repositorio que no es el que retiro el archivo.
  *
  * <h2>Las tres cosas que hacen que muerda, y ninguna sobra</h2>
  *
  * <ol>
- *   <li><b>Los clones tienen que estar.</b> Sin ellos, «el archivo no existe» es cierto porque no
- *       existe el repositorio entero, y esta guarda se cumpliria sola para siempre. Falla nombrando
- *       lo que falta — «no se pudo comprobar» no es «esta bien».
- *   <li><b>El contraste de la ruta.</b> Los tres consumidores que ya publican contratos de OTROS
+ *   <li><b>Los clones tienen que estar.</b> Sin ellos, «el archivo no existe» seria cierto porque
+ *       no existe el repositorio entero, y el rojo mandaria a mirar al consumidor cuando lo que
+ *       falta es un {@code git clone}. Falla nombrando lo que falta — «no se pudo comprobar» no es
+ *       «esta bien».
+ *   <li><b>El contraste de la ruta.</b> Los tres consumidores que publican contratos de OTROS
  *       proveedores tienen que seguir haciendolo: sin esto, una errata en la ruta —un {@code
- *       contrato-que-consume} en singular— haria que «no publica» fuera trivialmente cierto y nadie
- *       se enterara nunca.
- *   <li><b>Las cuatro pruebas tienen que existir y llevar su {@code @Disabled}.</b> Si alguien las
- *       borrara, quitar la anotacion dejaria de ser el remedio y este archivo estaria pidiendo algo
- *       que no se puede hacer.
+ *       contrato-que-consume} en singular— haria que los cuatro «no publican» a la vez, y el rojo
+ *       acusaria a cuatro repositorios de algo que paso en este.
+ *   <li><b>Las cuatro pruebas tienen que existir, activas y apuntando a su consumidor.</b> Si
+ *       alguien las borrara o las desactivara, el archivo del consumidor seguiria existiendo y
+ *       nadie lo compararia con lo que {@code EventosController} publica.
  * </ol>
  */
-@DisplayName("Etapa 4 — los cuatro contratos que todavia no existen, y lo que los espera")
+@DisplayName("Etapa 4 — los cuatro contratos existen, y sus cuatro pruebas corren")
 class ContratosDeLosConsumidoresTest {
 
-    /** Los cuatro que consumiran el buzon. {@code identidad} no se consume a si mismo. */
+    /** Los cuatro que consumen el buzon. {@code identidad} no se consume a si mismo. */
     private static final List<String> CONSUMIDORES =
             List.of("rentas", "catastro", "normativa", "caja");
 
@@ -60,15 +62,17 @@ class ContratosDeLosConsumidoresTest {
     private static final String CARPETA = "docs/50-api/contratos-que-consume";
 
     /**
-     * Contratos que <b>si</b> existen hoy, y que fijan que la ruta de arriba es la buena.
+     * Contratos con OTROS proveedores que existen desde antes, y que fijan que la ruta de arriba es
+     * la buena.
      *
      * <p>Medido el 2026-09-09 sobre los cuatro clones: {@code rentas} publica los tres de sus
      * proveedores, {@code catastro} el de {@code normativa} y {@code caja} el de {@code rentas}.
      * Son <b>tres clones de los cuatro</b> a proposito: con uno solo, apartar ese clon dejaria el
-     * contraste sin sujeto y sin decirlo. Sin esta lista, una errata en {@link #CARPETA} volveria
-     * trivialmente cierta la afirmacion de esta clase.
+     * contraste sin sujeto y sin decirlo. Sin esta lista, una errata en {@link #CARPETA} pondria
+     * rojos los cuatro «publica su contrato» a la vez, acusando a los consumidores de algo que paso
+     * aqui.
      */
-    private static final List<String> QUE_SI_PUBLICAN_HOY =
+    private static final List<String> QUE_PUBLICAN_PARA_OTROS =
             List.of(
                     "rentas/" + CARPETA + "/catastro.json",
                     "rentas/" + CARPETA + "/normativa.json",
@@ -87,21 +91,21 @@ class ContratosDeLosConsumidoresTest {
         }
         assertThat(queFaltan)
                 .as(
-                        "sin el clon, «no publica su contrato» es cierto porque no existe el"
-                                + " repositorio entero, y esta guarda se cumpliria sola para"
-                                + " siempre. Los clones son HERMANOS: `git clone"
-                                + " https://github.com/hneyra/<sistema>` al lado de este, y en CI"
-                                + " los trae `backend.yml` con `sparse-checkout: "
+                        "sin el clon, «no publica su contrato» seria cierto porque no existe el"
+                                + " repositorio entero, y el rojo mandaria a mirar al consumidor"
+                                + " cuando lo que falta es un clon. Los clones son HERMANOS: `git"
+                                + " clone https://github.com/hneyra/<sistema>` al lado de este, y"
+                                + " en CI los trae `backend.yml` con `sparse-checkout: "
                                 + CARPETA
                                 + "`")
                 .isEmpty();
     }
 
     @Test
-    @DisplayName("y la ruta de los contratos es la buena: hay cinco que si existen")
+    @DisplayName("y la ruta de los contratos es la buena: hay cinco de otros proveedores")
     void laRutaDeLosContratosEsLaBuena() {
         List<String> queFaltan = new ArrayList<>();
-        for (String contrato : QUE_SI_PUBLICAN_HOY) {
+        for (String contrato : QUE_PUBLICAN_PARA_OTROS) {
             if (!Files.isRegularFile(raizDeLosClones().resolve(contrato))) {
                 queFaltan.add(contrato);
             }
@@ -110,46 +114,54 @@ class ContratosDeLosConsumidoresTest {
                 .as(
                         "[el contraste] estos contratos existen desde C-1 y P5B/P5C. Si dejan de"
                                 + " encontrarse, lo que ha cambiado no es que nadie publique nada:"
-                                + " es la ruta con la que esta clase mira — y entonces «ningun"
-                                + " consumidor publica su contrato con identidad» seria"
-                                + " trivialmente cierto")
+                                + " es la ruta con la que esta clase mira — y entonces los cuatro"
+                                + " «no publica su contrato con identidad» saldrian a la vez por"
+                                + " un defecto de aqui")
                 .isEmpty();
     }
 
     @Test
-    @DisplayName("ninguno publica todavia su contrato con identidad (etapa 4)")
-    void ningunoPublicaTodaviaSuContratoConIdentidad() {
-        List<String> yaPublican = new ArrayList<>();
+    @DisplayName("los cuatro publican su contrato con identidad (etapa 4)")
+    void losCuatroPublicanSuContratoConIdentidad() {
+        List<String> noPublican = new ArrayList<>();
         for (String consumidor : CONSUMIDORES) {
-            if (Files.isRegularFile(
+            if (!Files.isRegularFile(
                     raizDeLosClones().resolve(consumidor + "/" + CARPETA + "/identidad.json"))) {
-                yaPublican.add(consumidor);
+                noPublican.add(consumidor);
             }
         }
-        assertThat(yaPublican)
+        assertThat(noPublican)
                 .as(
-                        "[esta es la lista de trabajo de la etapa 4, y este rojo es su remedio] uno"
-                                + " o mas consumidores YA publican lo que le piden a este buzon,"
-                                + " asi que su prueba de contrato ya se puede correr: hay que"
-                                + " quitarle el @Disabled a ContratoCon<Consumidor>Test y sacar ese"
-                                + " nombre de esta lista. Dejarlo aqui deja la comprobacion"
-                                + " desactivada sobre un contrato que existe, que es el unico"
-                                + " momento en que podria empezar a romperse sin que nadie lo vea")
+                        "[este rojo cae AQUI y no en el consumidor, y por eso dice de quien es]"
+                                + " estos consumidores tienen su ingestor desde la etapa 4 y ya no"
+                                + " publican lo que le piden a este buzon en "
+                                + CARPETA
+                                + "/identidad.json. Sin ese archivo, su ContratoCon<Consumidor>Test"
+                                + " no puede comparar nada y un campo que este controlador retire"
+                                + " deja a ese ingestor leyendo un nulo. Remedio: en el clon del"
+                                + " consumidor, regenerar el contrato con su generador"
+                                + " (ContratoQueConsumeDeIdentidad) — y si el clon esta atrasado,"
+                                + " traerlo a `main`")
                 .isEmpty();
     }
 
     /**
-     * Y las cuatro pruebas siguen ahi, con su anotacion.
+     * Y las cuatro pruebas siguen ahi, <b>activas</b> y apuntando a su consumidor.
      *
-     * <p>Se lee el fuente y no se pregunta a JUnit: lo que hace falta afirmar es que la anotacion
-     * {@code @Disabled} <b>este escrita</b>, y con el nombre del consumidor dentro, para que
-     * quitarla sea el remedio que la prueba de arriba nombra. Preguntandole a JUnit por una clase
-     * desactivada se sabria que no corre, que es justo lo que no distingue «desactivada a
-     * proposito» de «desaparecida».
+     * <p>Se lee el fuente y no se pregunta a JUnit, por lo mismo que en la etapa 3 pero al reves:
+     * preguntandole a JUnit por una clase desactivada solo se sabria que no corrio, y eso es justo
+     * lo que no distingue «desactivada a proposito» de «desaparecida». Aqui lo que se exige es que
+     * la anotacion <b>no este escrita</b> —ni {@code @Disabled} ni su {@code import}, para que
+     * devolverla no sea una linea— y que {@code consumidor()} devuelva el nombre del clon, que es
+     * lo que ata la clase con el archivo que la prueba de arriba exige.
+     *
+     * <p><b>Y se lee sin comentarios</b>, porque el javadoc de cada una de las cuatro nombra la
+     * anotacion para explicar por que ya no la lleva: una guarda que se dispara con la prosa que la
+     * justifica es la que alguien acaba apagando borrando el comentario (#42, #16).
      */
     @Test
-    @DisplayName("y las cuatro pruebas de contrato existen, desactivadas y nombrando su etapa")
-    void lasCuatroPruebasExistenDesactivadas() throws IOException {
+    @DisplayName("y las cuatro pruebas de contrato existen, activas y apuntando a su consumidor")
+    void lasCuatroPruebasExistenActivas() throws IOException {
         List<String> hallazgos = new ArrayList<>();
         for (String consumidor : CONSUMIDORES) {
             String clase =
@@ -167,20 +179,35 @@ class ContratosDeLosConsumidoresTest {
                 hallazgos.add(clase + ": no existe");
                 continue;
             }
-            String texto = Files.readString(fuente, StandardCharsets.UTF_8);
-            if (!texto.contains("@Disabled(")) {
-                hallazgos.add(clase + ": ya no lleva @Disabled, y su contrato sigue sin existir");
+            String texto = sinComentarios(Files.readString(fuente, StandardCharsets.UTF_8));
+            if (texto.contains("@Disabled") || texto.contains("org.junit.jupiter.api.Disabled")) {
+                hallazgos.add(
+                        clase
+                                + ": lleva @Disabled, y el contrato de "
+                                + consumidor
+                                + " existe: una prueba desactivada no falla, se salta, y el build"
+                                + " sigue en verde mientras este buzon deja de publicar lo que ese"
+                                + " ingestor lee");
             }
-            if (!texto.contains("etapa 4: " + consumidor)) {
-                hallazgos.add(clase + ": su @Disabled no dice que espera de la etapa 4");
+            if (!texto.contains("return \"" + consumidor + "\";")) {
+                hallazgos.add(
+                        clase
+                                + ": su consumidor() no devuelve «"
+                                + consumidor
+                                + "», asi que no lee el archivo que la prueba de arriba exige");
             }
         }
         assertThat(hallazgos)
                 .as(
-                        "las cuatro tienen que seguir escritas: si se borraran, «quitar el"
-                                + " @Disabled» dejaria de ser un remedio que nadie puede aplicar y"
-                                + " la guarda de arriba estaria pidiendo algo imposible")
+                        "las cuatro tienen que seguir escritas y activas: el archivo del consumidor"
+                                + " existe, y si nadie lo compara con lo que EventosController"
+                                + " publica, retirar un campo pasa en verde aqui y revienta alli")
                 .isEmpty();
+    }
+
+    /** Los comentarios de bloque y de linea en blanco, para que la prosa no cuente como codigo. */
+    private static String sinComentarios(String fuente) {
+        return fuente.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)//.*$", "");
     }
 
     /** El directorio que contiene los clones, que son hermanos de este. */

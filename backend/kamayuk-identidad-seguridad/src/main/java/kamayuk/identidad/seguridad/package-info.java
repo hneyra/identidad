@@ -38,11 +38,11 @@
  *
  * <p><b>Y lo que era un HUECO DECLARADO ya no lo es del todo</b>: como se sincroniza la copia
  * cuando alguien cambia un permiso. Desde la etapa 2 <b>lo escrito aqui se publica</b> en {@code
- * identidad_evento}, en la misma transaccion. Lo que sigue sin construirse es el otro extremo —el
- * consumidor de cada uno de los cuatro, que es la etapa 4— y <b>cuanto dura la ventana de
- * inconsistencia</b>, que ADR-0039 exige medida y no supuesta. Y entre esta etapa y la 4 hay dos
- * sitios donde se administra, porque {@code rentas} conserva sus escrituras hasta tener su
- * consumidor (AC-7).
+ * identidad_evento}, en la misma transaccion. Y desde la <b>etapa 4</b> el otro extremo existe: el
+ * consumidor de cada uno de los cuatro lee ese buzon y lo acusa, y {@code rentas} retiro sus
+ * escrituras, asi que ya no hay dos sitios donde se administre. Lo que sigue sin medirse es
+ * <b>cuanto dura la ventana de inconsistencia</b>, que ADR-0039 exige medida y no supuesta: eso
+ * solo se puede medir con las cinco aplicaciones levantadas, y es la etapa 5.
  */
 @org.jspecify.annotations.NullMarked
 package kamayuk.identidad.seguridad;

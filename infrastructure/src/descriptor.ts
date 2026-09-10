@@ -27,9 +27,11 @@
  * con nadie: no llama a ningun sistema hermano, asi que su egreso es DNS, su motor y el emisor
  * —exactamente lo mismo que necesita cualquier backend para validar el token que recibe—.
  *
- * **Esa lista crece en la etapa 4 y no antes** (`ADR-0039` §Etapas): cuando exista el buzon, los
- * cuatro sistemas seran quienes lean de aqui, o sea que las aristas nuevas apareceran en SUS
- * descriptores y no en este. Un egreso vacio hacia los sistemas es, hoy, una afirmacion.
+ * **Y la etapa 4 no la hizo crecer, medido** (`ADR-0039` §Etapas): el buzon existe desde la 3 y
+ * los cuatro sistemas son quienes leen de aqui, asi que las aristas nuevas aparecieron en SUS
+ * descriptores —cada uno declara su egreso hacia `identidad-sistema`— y no en este. Un egreso
+ * vacio hacia los sistemas sigue siendo una afirmacion, y ahora esta contrastada con cuatro
+ * descriptores que la cumplen por el otro lado.
  *
  * ## LA COLISION DE NOMBRE CON KEYCLOAK, y por que este archivo no usa `componente: identidad`
  *
@@ -47,8 +49,8 @@
  *
  * Ese ultimo es el que decide el valor de aqui. El grafo de egreso **ES** el grafo de
  * dependencias del producto (`ADR-0029`), y filtra por el NOMBRE de la etiqueta y no por el
- * namespace de destino. Con `componente: identidad` en los pods de este sistema, el dia que la
- * etapa 4 haga que los cuatro declaren su arista hacia aqui, esas cuatro aristas **se filtrarian
+ * namespace de destino. Con `componente: identidad` en los pods de este sistema, las cuatro
+ * aristas que la etapa 4 hizo declarar a los cuatro hacia aqui **se filtrarian
  * como si fueran infraestructura**: el grafo diria que nadie llama a `identidad` mientras los
  * cuatro lo llaman. No es un error que se vea; es un grafo que miente, que es peor.
  *
@@ -494,8 +496,9 @@ export const identidad: DescriptorDeSistema = {
    * En la etapa 1 este sistema no corre nada de madrugada: no publica, no ingesta y no entrega.
    * Conceder y revocar son actos de una persona, no tareas programadas.
    *
-   * **Lo que la etapa 4 traera tampoco sera necesariamente un `CronJob`**: `ADR-0039` decide que
-   * la replica viaja por el buzon de `ADR-0028` §3, y quien lo consume es cada sistema. Si algun
+   * **Y la etapa 4 tampoco trajo ninguno aqui**: `ADR-0039` decide que la replica viaja por el
+   * buzon de `ADR-0028` §3, y quien lo consume es cada sistema — el `CronJob` del consumidor vive
+   * en el descriptor de cada uno de los cuatro, no en este. Si algun
    * dia hace falta un proceso periodico aqui, lo que hay que anadir con el es la guarda que mida
    * que corre — el punto 4 de «Lo que cuesta» de `ADR-0039`, que es literalmente el defecto que
    * #21 encontro en el ingestor de `catastro`, suspendido desde su primer dia.
@@ -536,9 +539,9 @@ export const identidad: DescriptorDeSistema = {
    * - **DNS**, sin el cual las otras dos no resuelven ningun nombre;
    * - **su motor**, en el namespace de la plataforma;
    * - **Keycloak**, para traerse el JWKS con que valida los tokens que recibe;
-   * - **ningun sistema hermano.** Ver la cabecera: hoy es una afirmacion, y la etapa 4 de
-   *   `ADR-0039` no la cambia —las aristas nuevas apareceran en los descriptores de los CUATRO,
-   *   que seran quienes lean de aqui—.
+   * - **ningun sistema hermano.** Ver la cabecera: es una afirmacion, y la etapa 4 de
+   *   `ADR-0039` no la cambio —las aristas nuevas aparecieron en los descriptores de los CUATRO,
+   *   que son quienes leen de aqui—.
    */
   egreso(e): NetworkPolicy[] {
     return [
@@ -640,9 +643,10 @@ export const identidad: DescriptorDeSistema = {
       annotations: {
         summary: `${SISTEMA} lleva 5 minutos sin responder`,
         description:
-          "Con un solo nodo no hay a donde mover la carga: hay que mirar el pod. Mientras " +
-          "`ADR-0039` no llegue a su etapa 4, cada sistema autoriza contra SU copia local, asi " +
-          "que esto no deja a nadie sin poder trabajar: deja de poderse conceder y revocar.",
+          "Con un solo nodo no hay a donde mover la carga: hay que mirar el pod. Cada sistema " +
+          "autoriza contra SU copia local (`ADR-0039`), asi que esto no deja a nadie sin poder " +
+          "trabajar: deja de poderse conceder y revocar, y los cuatro consumidores del buzon " +
+          "acumulan retraso hasta que vuelva.",
       },
     },
   ],

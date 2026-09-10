@@ -3,13 +3,16 @@
 //
 // POR QUE SE DERIVA Y NO SE TRANSCRIBE
 // ------------------------------------
-// Son 134 opciones. Transcribirlas a mano una vez ya seria un ejercicio de copia sin errores; el
-// problema es la segunda vez: `rentas` regenera su `docs/10-negocio/catalogo-de-opciones.md` del
-// prototipo de interfaz, y una copia de 134 filas en otro repositorio se separa el primer mes. El
+// Son 130 opciones —134 hasta la etapa 4 de ADR-0039, que retiro de `rentas` las cuatro de
+// administracion que ya no sirve—. Transcribirlas a mano una vez ya seria un ejercicio de copia sin
+// errores; el problema es la segunda vez: `rentas` regenera su
+// `docs/10-negocio/catalogo-de-opciones.md` del prototipo de interfaz, y una copia de 130 filas en
+// otro repositorio se separa el primer mes. Ya paso: entre que `rentas` retiro sus cuatro y este
+// guion volvio a correr, la copia de aqui dijo 134 durante una etapa entera. El
 // sintoma de que se separen es exactamente el que RF-122 existe para impedir —una pantalla a la que
 // nadie puede dar permiso— y no se ve mirando ninguna pantalla de aqui.
 //
-// Los otros cuatro catalogos SI estan transcritos, y no es incoherencia: son 16, 1, 3 y 6 opciones
+// Los otros cuatro catalogos SI estan transcritos, y no es incoherencia: son 16, 1, 3 y 7 opciones
 // escritas a mano en un `CatalogoDelSistema.java` que cabe en una pantalla, y ese archivo ya esta
 // atado a sus endpoints por `CatalogoDelSistemaTest` en su propio repositorio. Lo que ata las cinco
 // copias de aqui con los cinco originales es la guarda cruzada de `infrastructure` (AC-4), que las
@@ -82,7 +85,7 @@ function main() {
   if (cuantas === 0) {
     console.error(
       "El catalogo de `rentas` se leyo VACIO. Escribir cero opciones dejaria a este sistema sin" +
-        " ninguna de las 134 configurables, y en silencio: se para aqui en vez de escribirlo.",
+        " ninguna de sus opciones configurables, y en silencio: se para aqui en vez de escribirlo.",
     );
     process.exit(2);
   }

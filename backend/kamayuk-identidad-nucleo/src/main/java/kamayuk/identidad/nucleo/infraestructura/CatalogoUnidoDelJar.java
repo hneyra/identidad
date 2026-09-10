@@ -15,12 +15,13 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <h2>Por que los archivos y no cinco listas escritas en Java</h2>
  *
- * <p>Porque son <b>160 opciones</b> —134 de {@code rentas}, 16 de {@code catastro}, 6 de aqui, 3 de
- * {@code caja} y 1 de {@code normativa}— y porque no son de este repositorio: son copias de los
- * cinco catalogos, y lo que las tiene que atar al original es una guarda que lee los dos lados. Una
- * lista escrita en Java se compara peor: la guarda cruzada de {@code infrastructure} tendria que
- * analizar codigo fuente para leerla, y las de {@code rentas} habria que transcribirlas a mano cada
- * vez que ese repositorio regenere su catalogo. En un archivo de datos, la comparacion es un {@code
+ * <p>Porque son <b>157 opciones</b> —130 de {@code rentas}, 16 de {@code catastro}, 7 de aqui, 3 de
+ * {@code caja} y 1 de {@code normativa}; la cifra se mueve con las etapas, y lo que la mide es
+ * {@code CatalogoUnidoTest}— y porque no son de este repositorio: son copias de los cinco
+ * catalogos, y lo que las tiene que atar al original es una guarda que lee los dos lados. Una lista
+ * escrita en Java se compara peor: la guarda cruzada de {@code infrastructure} tendria que analizar
+ * codigo fuente para leerla, y las de {@code rentas} habria que transcribirlas a mano cada vez que
+ * ese repositorio regenere su catalogo. En un archivo de datos, la comparacion es un {@code
  * JSON.parse} de los dos lados.
  *
  * <p>Y por eso el de {@code rentas} <b>se deriva</b> con {@code
