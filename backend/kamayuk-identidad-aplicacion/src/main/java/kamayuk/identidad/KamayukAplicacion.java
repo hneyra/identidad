@@ -16,8 +16,9 @@ import org.springframework.modulith.Modulithic;
  *
  * <p><b>El nombre de la clase es el mismo en los cinco</b>, y se conserva a proposito: es el punto
  * de entrada que el {@code bootJar} de cada sistema empaqueta y el que las pruebas de arranque y
- * {@code ModulosTest} nombran. Renombrarlo aqui haria que el quinto sistema fuera el unico distinto
- * en lo unico que todos tienen igual.
+ * {@code ModulosTest} nombran. Renombrarlo en UNO haria que ese sistema fuera el unico distinto en
+ * lo unico que todos tienen igual, asi que se renombra en los cinco a la vez o en ninguno — que es
+ * lo que se hizo al sacar del codigo el nombre del monolito, del que esta clase se llamaba antes.
  *
  * <p>Ocho modulos se declaran <b>compartidos</b>: {@code dominio} (el vocabulario comun), {@code
  * compartido} (el contexto de tenant), {@code plataforma} (el camino del token al {@code SET
@@ -28,7 +29,7 @@ import org.springframework.modulith.Modulithic;
  * o extienda {@code RepositorioJdbc} contaria como una dependencia que explicar.
  */
 @Modulithic(
-        systemName = "SGTM",
+        systemName = "Kamayuk",
         sharedModules = {
             "dominio",
             "compartido",
@@ -41,7 +42,7 @@ import org.springframework.modulith.Modulithic;
         })
 @SpringBootApplication
 @Import({ConfiguracionDeTenant.class, SeguridadWeb.class})
-public class SgtmAplicacion {
+public class KamayukAplicacion {
 
     /** El perfil de los procesos que corren y terminan (ADR-0003). */
     private static final String PERFIL_BATCH = "batch";
@@ -65,7 +66,8 @@ public class SgtmAplicacion {
      * distinto de cero.
      */
     public static void main(String[] args) {
-        ConfigurableApplicationContext contexto = SpringApplication.run(SgtmAplicacion.class, args);
+        ConfigurableApplicationContext contexto =
+                SpringApplication.run(KamayukAplicacion.class, args);
         if (contexto.getEnvironment().matchesProfiles(PERFIL_BATCH)) {
             System.exit(SpringApplication.exit(contexto));
         }
