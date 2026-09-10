@@ -60,7 +60,7 @@ class BuzonServidoDePuntaAPuntaTest {
     private static final String AZP_DE_RENTAS = "kamayuk-rentas-servicio-200105";
 
     /** El cliente del backoffice: un token de PERSONA, que es el que no puede acusar. */
-    private static final String AZP_DE_USUARIO = "sgtm-backoffice";
+    private static final String AZP_DE_USUARIO = "kamayuk-backoffice";
 
     private static ArnesDeAdministracion arnes;
     private static MockMvc mvc;
@@ -161,7 +161,7 @@ class BuzonServidoDePuntaAPuntaTest {
         for (MvcResult respuesta : List.of(lectura, acuse)) {
             assertThat(respuesta.getResponse().getStatus())
                     .as(
-                            "[«sgtm-backoffice» es el cliente de las personas: acusar retira un"
+                            "[«kamayuk-backoffice» es el cliente de las personas: acusar retira un"
                                     + " evento de la cola de un sistema, y lo retirado no se vuelve"
                                     + " a servir]")
                     .isEqualTo(403);
@@ -170,7 +170,7 @@ class BuzonServidoDePuntaAPuntaTest {
                             "y con codigo propio: «no tiene el privilegio» se arregla"
                                     + " concediendoselo, y esto se arregla pidiendo otro token")
                     .contains("SIN_IDENTIDAD_DE_SERVICIO")
-                    .contains("sgtm-backoffice");
+                    .contains("kamayuk-backoffice");
         }
     }
 

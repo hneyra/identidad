@@ -1,0 +1,118 @@
+# ============================================================================
+#  EL BUZON SERVIDO. Dos operaciones, y las consumen los CUATRO satelites.
+#
+#  Esto NO es para el frontend: es la unica parte de la API que hablan maquinas.
+#  `rentas`, `catastro`, `normativa` y `caja` mantienen su copia local de
+#  `usuario`/`grupo`/`miembro`/`permiso` leyendo de aqui cada cinco minutos y
+#  acusando lo aplicado. Es ADR-0028 §3, y es lo que hace que la ventanilla siga
+#  cobrando con este sistema apagado: nadie pregunta nada por HTTP para autorizar
+#  — cada sistema autoriza contra SU copia.
+#
+#  ── EL BUZON SE SIRVE, NO SE EMPUJA, y es una decision ──
+#
+#  Empujar obligaria a este sistema a conocer las cuatro direcciones, guardar
+#  cuatro credenciales y reintentar cuatro veces: o sea, a que el dueno de la
+#  autorizacion dependa de que los cuatro esten arriba. Sirviendolo, un satelite
+#  caido es un satelite con la cola larga, y nada mas.
+#
+#  ── QUIEN PREGUNTA SALE DEL TOKEN, NUNCA DE UN PARAMETRO ──
+#
+#  Ninguna de las dos operaciones acepta `?consumidor=`. El consumidor sale del
+#  claim `azp`, que tiene que tener la forma `kamayuk-<sistema>-servicio-<ubigeo>`
+#  (ADR-0028 §2). Con un parametro, cualquiera podria acusar en nombre de `caja` y
+#  vaciarle la cola: su copia local se quedaria desatrasada PARA SIEMPRE y sin un
+#  solo error que lo dijera.
+#
+#  Y el acuse es POR CONSUMIDOR: la clave de `identidad_evento_acuse` lleva el
+#  consumidor DENTRO. Por eso `identidad_evento` no tiene columna `estado` — una
+#  sola columna no puede decir «entregado a `caja` y no a `rentas`».
+# ============================================================================
+
+@api = http://localhost:8082/identidad/api/v1
+# El token de `00-token.http` § 2: `client_credentials`, NO el de la persona.
+@servicio = {{$dotenv TOKEN_DE_SERVICIO}}
+
+### 1 · Lo que le falta a ESTE consumidor
+#
+#  `limite` va de 1 a 500 y por omision son 200; fuera de rango es 422 diciendo
+#  «El limite va de 1 a 500, y llego N».
+#
+#  La respuesta:
+#    { "eventos": [ ... ], "quedan": <long> }
+#
+#  y cada evento trae SIETE campos, ni uno mas:
+#    eventoId   UUID como cadena
+#    secuencia  el orden de emision. SE APLICAN EN ESTE ORDEN, y no es un detalle:
+#               una afiliacion que llega antes del alta de su grupo no se puede
+#               aplicar, asi que el orden ES contenido
+#    tipo       USUARIO_DADO_DE_ALTA | USUARIO_MODIFICADO | GRUPO_DADO_DE_ALTA
+#               | GRUPO_MODIFICADO | MIEMBRO_AFILIADO | MIEMBRO_DESAFILIADO
+#               | PERMISO_FIJADO
+#    sujetoId   la fila de la que habla
+#    cuerpo     la fila ENTERA tal como quedo, en JSON CANONICO **como cadena**
+#               (no un objeto anidado: se transporta y se compara literal)
+#    huella     sha256 hex del cuerpo canonico
+#    creadoEn   ISO-8601
+#
+#  `quedan` es el RETRASO de este consumidor contando los de esta pagina: es la
+#  cifra que hay que vigilar, porque un consumidor parado no da ningun error —
+#  simplemente deja de acusar.
+GET {{api}}/eventos/pendientes?limite=5
+Authorization: Bearer {{servicio}}
+
+### 2 · Acusar lo aplicado
+#
+#  Se acusa DESPUES de haber aplicado y confirmado la transaccion local. Al reves
+#  —acusar y luego aplicar— un fallo entre las dos cosas pierde el evento y nada
+#  lo vuelve a servir.
+#
+#  Respuesta: { "recibidos": N, "escritos": M, "quedan": <long> }
+#
+#  `escritos` PUEDE SER MENOR que `recibidos` y no es un error: el acuse es
+#  idempotente (`ON CONFLICT DO NOTHING`), asi que un consumidor que confirmo su
+#  transaccion y perdio la respuesta puede repetir el acuse sin consecuencias.
+POST {{api}}/eventos/acuses
+Authorization: Bearer {{servicio}}
+Content-Type: application/json
+
+{ "eventos": ["{{$dotenv UN_EVENTO_ID}}"] }
+
+### 3 · NEGATIVO: un token de PERSONA → 403 SIN_IDENTIDAD_DE_SERVICIO
+#
+#  Y es un codigo propio, no `SIN_PRIVILEGIO`, porque se arreglan al reves: un
+#  privilegio se concede, y esto se arregla pidiendo OTRO token. Con el mismo
+#  codigo, un administrador que probara el buzon desde el backoffice se
+#  concederia a si mismo un permiso que no le sirve para nada.
+GET {{api}}/eventos/pendientes
+Authorization: Bearer {{$dotenv TOKEN}}
+
+### 4 · NEGATIVO: sin token → 403 SIN_IDENTIDAD_DE_SERVICIO
+GET {{api}}/eventos/pendientes
+
+### 5 · NEGATIVO: `limite` fuera de rango → 422
+GET {{api}}/eventos/pendientes?limite=501
+Authorization: Bearer {{servicio}}
+
+### 6 · NEGATIVO: acusar un evento que no consta → 422
+#
+#  422 y no 404 a proposito: lo que esta mal no es la ruta, es el cuerpo.
+POST {{api}}/eventos/acuses
+Authorization: Bearer {{servicio}}
+Content-Type: application/json
+
+{ "eventos": ["99999999-8888-4777-8666-555555555555"] }
+
+### 7 · NEGATIVO: algo que no es un UUID → 422 nombrandolo
+POST {{api}}/eventos/acuses
+Authorization: Bearer {{servicio}}
+Content-Type: application/json
+
+{ "eventos": ["esto-no-es-un-uuid"] }
+
+### 8 · NEGATIVO: la cuenta de servicio de OTRA municipalidad → 403
+#
+#  Su token es valido y su `azp` tiene la forma correcta; lo que no tiene es ficha
+#  en ESTA base. El guardia contesta «La cuenta «...» no esta dada de alta en este
+#  sistema», que es distinto de «le falta un privilegio».
+GET {{api}}/eventos/pendientes
+Authorization: Bearer {{$dotenv TOKEN_DE_OTRA_MUNICIPALIDAD}}

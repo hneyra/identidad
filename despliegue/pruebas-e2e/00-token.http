@@ -1,0 +1,83 @@
+# ============================================================================
+#  LOS DOS TOKENS. Todo lo demas de esta carpeta empieza aqui.
+#
+#  Este sistema NO autentica (ADR-0039 §«No toca»): valida tokens que emite
+#  Keycloak. Asi que un `.http` sin token no prueba nada — contesta 401 y ya.
+#
+#  Hay DOS tokens y no son intercambiables, y esa es la primera cosa que hay
+#  que entender para consumir esta API:
+#
+#    * el de una PERSONA, para los 21 endpoints de administracion;
+#    * el de una CUENTA DE SERVICIO, y solo para el buzon (`20-eventos.http`).
+#
+#  Un token de persona contra el buzon da 403 `SIN_IDENTIDAD_DE_SERVICIO`, y un
+#  token de servicio contra la administracion da 403 `SIN_PRIVILEGIO`. No es una
+#  molestia: quien pregunta por el buzon sale del `azp` del token y de ningun
+#  parametro, porque un `?consumidor=` dejaria que cualquiera vaciara la cola de
+#  otro sistema.
+# ============================================================================
+
+@keycloak = http://localhost:8181
+@realm = kamayuk
+@api = http://localhost:8082/identidad/api/v1
+
+# El usuario y su clave los pone quien despliega. `administrador` sale de
+# `KAMAYUK_ADMINISTRADOR` del `.env` de la plataforma, y su clave la fija
+# `infrastructure/despliegue/identidad/crear-usuario.sh` SIN `--reset` (con
+# `--reset` la clave es temporal y Keycloak exige cambiarla al entrar, que es lo
+# correcto para una persona de verdad y lo inservible para un `curl`).
+@usuario = administrador
+@clave = {{$dotenv CLAVE_DEL_ADMINISTRADOR}}
+
+### 1 · El token de una PERSONA
+#
+#  `kamayuk-verificacion` y no `kamayuk-backoffice`: el del backoffice es el del
+#  navegador —codigo de autorizacion con PKCE— y tiene `directAccessGrants`
+#  DESACTIVADO a proposito, asi que con el no se puede pedir un token con la
+#  clave. El de verificacion existe exactamente para esto.
+# @name tokenDePersona
+POST {{keycloak}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=kamayuk-verificacion&username={{usuario}}&password={{clave}}
+
+### 2 · El token de una CUENTA DE SERVICIO
+#
+#  Los cuatro clientes `kamayuk-<sistema>-servicio-<ubigeo>` NO estan en el realm
+#  versionado: los crea `reconciliar-identidades.sh servicios` leyendo
+#  `municipalidades/<ubigeo>.json`, porque una clave de cliente no puede vivir en
+#  git (ADR-0012). Son confidenciales y solo admiten `client_credentials`.
+#
+#  El `scope` importa: `kamayuk-servicio` es el que mete `municipalidad_id` en el
+#  token desde el atributo de la cuenta de servicio. Sin el, el token vale y la
+#  peticion da 403 `SIN_MUNICIPALIDAD`.
+# @name tokenDeServicio
+POST {{keycloak}}/realms/{{realm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id=kamayuk-rentas-servicio-200105&client_secret={{$dotenv CLAVE_DE_RENTAS}}&scope=kamayuk-servicio
+
+### 3 · Que hay dentro del token, sin adivinar
+#
+#  Los dos claims que deciden todo lo demas:
+#    `preferred_username`  con el que el guardia busca la fila de `usuario`
+#    `municipalidad_id`    con el que se fija `SET LOCAL` y actua el RLS
+#    `azp`                 quien pregunta, para el buzon
+#
+#  Desde la linea de comandos:
+#    printf '%s' "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+GET {{keycloak}}/realms/{{realm}}/protocol/openid-connect/userinfo
+Authorization: Bearer {{tokenDePersona.response.body.access_token}}
+
+### 4 · Lo unico que se sirve SIN token
+#
+#  Son cuatro rutas y estan nombradas una por una en `SeguridadWeb`, sin comodin:
+#  `/actuator/health`, `/health/liveness`, `/health/readiness` y
+#  `/actuator/prometheus`. Todo `/actuator/**` que no sea una de esas cae en
+#  `denyAll()`, asi que un endpoint nuevo del actuator hay que abrirlo alli.
+#
+#  OJO: `/actuator/health` NO cuelga de `/identidad`, asi que Traefik no lo
+#  encamina. Desde el anfitrion solo se alcanza entrando al contenedor:
+#    docker compose -f despliegue/compose.yaml exec identidad-sistema \
+#      curl -s localhost:8080/actuator/health
+GET {{api}}/seguridad/usuarios

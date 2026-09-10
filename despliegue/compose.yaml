@@ -172,7 +172,7 @@ services:
       #
       # Es el MISMO realm que los otros cuatro: un login para todos (ADR-0030 §3),
       # y ADR-0039 no toca la autenticacion.
-      KAMAYUK_OIDC_EMISOR: ${KAMAYUK_OIDC_EMISOR:-http://localhost:8180}/realms/sgtm
+      KAMAYUK_OIDC_EMISOR: ${KAMAYUK_OIDC_EMISOR:-http://localhost:8180}/realms/kamayuk
       # El emisor es una identidad, no una direccion de red. El navegador llega a
       # Keycloak por su nombre publico y este contenedor por el interno de la red
       # del compose; usar el publico para las dos cosas haria que el backend
@@ -183,7 +183,7 @@ services:
       # cadena es correcta. Es tambien la razon de que el servicio de arriba no se
       # llame asi: con los dos registrando el alias, esta URL resolveria a uno
       # cualquiera de los dos.
-      KAMAYUK_OIDC_JWKS: http://identidad:8080/realms/sgtm/protocol/openid-connect/certs
+      KAMAYUK_OIDC_JWKS: http://identidad:8080/realms/kamayuk/protocol/openid-connect/certs
     labels:
       # Su prefijo, y SOLO el suyo. Reclamar el de otro no falla: se lo queda, y
       # las peticiones dejan de llegar a su dueno. Es la misma prohibicion (a) que
