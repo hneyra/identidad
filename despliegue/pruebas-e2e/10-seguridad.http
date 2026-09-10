@@ -1,0 +1,336 @@
+# ============================================================================
+#  LAS 21 OPERACIONES DE ADMINISTRACION, bajo /identidad/api/v1/seguridad
+#
+#  Desde la etapa 4 de ADR-0039 este es el UNICO sitio del producto donde se
+#  escribe la autorizacion: `usuario`, `grupo`, `miembro` y `permiso`. Los otros
+#  cuatro sistemas ya no las escriben — reciben lo que este buzon publica y
+#  autorizan contra su copia local.
+#
+#  ── CUATRO COSAS QUE HAY QUE SABER ANTES DE MANDAR LA PRIMERA PETICION ──
+#
+#  1. `observacion` ES OBLIGATORIA en las nueve escrituras, con un MINIMO DE 5
+#     caracteres (se le hace `strip()`; el maximo es 500). No es burocracia: es
+#     la regla 10, y aqui manda sobre cada concesion y cada revocacion — quien
+#     concedio un permiso, cuando y por que. Sin ella: 422.
+#
+#  2. NADA SE BORRA. No hay ni un `DELETE` en toda la API. Un usuario se da de
+#     baja y se reactiva; un permiso se revoca mandando la lista de privilegios
+#     VACIA. Es la regla 4, y aqui es la mas literal de las once: si un acceso se
+#     borrara, la auditoria no podria decir quien lo tuvo.
+#
+#  3. `sistema` NO TIENE VALOR POR OMISION en los cuerpos de permisos. Esta base
+#     guarda los catalogos de los CINCO sistemas —157 opciones—, y el codigo solo
+#     no identifica ninguna: `modulos` y `accesos` existen en dos catalogos. Un
+#     sistema supuesto seria dar permiso sobre la opcion de otro. Sin el: 422
+#     enumerando los cinco.
+#
+#  4. UN PARAMETRO DE QUERY QUE LA OPERACION NO DECLARA NO SE IGNORA: es 422
+#     nombrandolo (`GuardiaDeParametros`). Solo valen los suyos y los cuatro de
+#     la paginacion: `pagina`, `tamano`, `ordenarPor`, `direccion`.
+#
+#  El vocabulario de privilegios son SIETE y no incluye «ESCRITURA»:
+#    EJECUCION · LECTURA · REGISTRO · MODIFICACION · ELIMINACION · IMPRESION · ESPECIAL
+# ============================================================================
+
+@api = http://localhost:8082/identidad/api/v1
+@token = {{$dotenv TOKEN}}
+
+# Un sufijo por corrida. Como nada se borra, repetir el mismo nombre da 409:
+# cambialo en cada pasada, que es lo que hace `ejercer.sh` con la marca de tiempo.
+@sufijo = e2e-1
+
+# ─────────────────────────── LECTURAS (8) ───────────────────────────
+
+### Los modulos de los cinco catalogos. Sin `sistema` salen los cinco.
+GET {{api}}/seguridad/modulos?tamano=500
+Authorization: Bearer {{token}}
+
+### Solo los de este sistema. Un valor fuera de los cinco: 422.
+GET {{api}}/seguridad/modulos?sistema=identidad
+Authorization: Bearer {{token}}
+
+### Las opciones. `ordenarPor` solo admite codigo, nombre, tipo, sistema, id.
+GET {{api}}/seguridad/accesos?sistema=identidad&tamano=500&ordenarPor=codigo&direccion=ASCENDENTE
+Authorization: Bearer {{token}}
+
+### Los grupos. La implantacion deja dos: el de la municipalidad y «Consumidores del buzon».
+GET {{api}}/seguridad/grupos
+Authorization: Bearer {{token}}
+
+### Los usuarios. La implantacion deja cinco: el administrador y las CUATRO cuentas de servicio.
+GET {{api}}/seguridad/usuarios?tamano=100&ordenarPor=cuenta
+Authorization: Bearer {{token}}
+
+### A que grupos pertenece un usuario.
+GET {{api}}/seguridad/usuarios/1/grupos
+Authorization: Bearer {{token}}
+
+### Quien esta en un grupo.
+GET {{api}}/seguridad/grupos/1/miembros?ordenarPor=cuenta
+Authorization: Bearer {{token}}
+
+### Quien tiene un privilegio concreto sobre una opcion concreta.
+#
+#  `sistema` y `privilegio` estan declarados `required=false` y son OBLIGATORIOS
+#  de facto: sin ellos es 422. Es la respuesta a «quien puede hacer esto», que es
+#  la pregunta que este sistema entero existe para contestar.
+GET {{api}}/seguridad/accesos/permisos/usuarios?sistema=identidad&privilegio=REGISTRO
+Authorization: Bearer {{token}}
+
+# ─────────────────────── EL CICLO DE VIDA DE UN GRUPO (4) ───────────────────────
+
+### Alta de grupo → 201
+# @name grupo
+POST {{api}}/seguridad/grupos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Ventanilla {{sufijo}}",
+  "descripcion": "Atiende al contribuyente",
+  "observacion": "Alta segun memorando 2026-12"
+}
+
+### Ponerle vigencia. Los dos nulos QUITAN la caducidad; `desde > hasta` es 422.
+PUT {{api}}/seguridad/grupos/{{grupo.response.body.id}}/vigencia
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vigenciaDesde": "2026-01-01",
+  "vigenciaHasta": "2026-12-31",
+  "observacion": "Vigente hasta fin de ejercicio"
+}
+
+### Darlo de baja. Privilegio ELIMINACION — pero NO borra: deja `habilitado=false`.
+POST {{api}}/seguridad/grupos/{{grupo.response.body.id}}/baja
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "observacion": "Se reorganiza la oficina" }
+
+### Reactivarlo.
+POST {{api}}/seguridad/grupos/{{grupo.response.body.id}}/reactivacion
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "observacion": "Vuelve a operar" }
+
+# ─────────────────────── EL CICLO DE VIDA DE UN USUARIO (4) ───────────────────────
+
+### Alta de usuario → 201
+#
+#  NO hay campo de clave ni de sujeto OIDC, y es deliberado: aqui no se guarda
+#  ninguna contrasena (ADR-0005, ADR-0012 §5.4). Lo que une esta fila con la
+#  identidad del token es `cuenta` contra el `preferred_username`, y la cuenta la
+#  crea `reconciliar-identidades.sh` en Keycloak. Dar de alta aqui a alguien que
+#  no existe alli produce una fila que ningun token nombra.
+# @name usuario
+POST {{api}}/seguridad/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cuenta": "jperez-{{sufijo}}",
+  "nombre": "Jorge Perez",
+  "correo": "jperez@catacaos.gob.pe",
+  "observacion": "Alta por resolucion de personal"
+}
+
+### Su vigencia.
+PUT {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/vigencia
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vigenciaDesde": "2026-01-01",
+  "vigenciaHasta": "2026-12-31",
+  "observacion": "Contrato hasta fin de ejercicio"
+}
+
+### Baja y reactivacion: cesa y se reincorpora, sin perder el rastro.
+POST {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/baja
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "observacion": "Cesa hoy por fin de contrato" }
+
+###
+POST {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/reactivacion
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "observacion": "Se reincorpora tras la renovacion" }
+
+# ─────────────────────────── LA AFILIACION (1) ───────────────────────────
+
+### Afiliar y desafiliar con la MISMA operacion: `activo` lo decide.
+#
+#  No hay `DELETE /miembros`. `activo: false` desafilia y deja la fila, que es lo
+#  que permite decir «estuvo en este grupo hasta esta fecha».
+POST {{api}}/seguridad/grupos/{{grupo.response.body.id}}/miembros
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuarioId": {{usuario.response.body.id}},
+  "activo": true,
+  "observacion": "Entra a la ventanilla"
+}
+
+###
+POST {{api}}/seguridad/grupos/{{grupo.response.body.id}}/miembros
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "usuarioId": {{usuario.response.body.id}},
+  "activo": false,
+  "observacion": "Sale de la ventanilla"
+}
+
+# ─────────────────────────── LOS PERMISOS (5) ───────────────────────────
+
+### Los del grupo.
+GET {{api}}/seguridad/grupos/{{grupo.response.body.id}}/permisos
+Authorization: Bearer {{token}}
+
+### Fijar los del grupo. Es un PUT: reemplaza lo que haya para ese par.
+#
+#  `privilegios` AUSENTE es 422; `privilegios: []` es la RETIRADA explicita. La
+#  diferencia es a proposito: retirar todos los privilegios de una opcion tiene
+#  que ser algo que alguien escribio, no algo que se le olvido mandar.
+PUT {{api}}/seguridad/grupos/{{grupo.response.body.id}}/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "niveles": [
+    { "sistema": "identidad", "acceso": "usuarios", "privilegios": ["LECTURA"] },
+    { "sistema": "rentas", "acceso": "accesos", "privilegios": ["LECTURA", "IMPRESION"] }
+  ],
+  "observacion": "La ventanilla consulta usuarios y las opciones de rentas"
+}
+
+### Revocar: la lista vacia.
+PUT {{api}}/seguridad/grupos/{{grupo.response.body.id}}/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "niveles": [ { "sistema": "rentas", "acceso": "accesos", "privilegios": [] } ],
+  "observacion": "Se le retira la consulta de rentas"
+}
+
+### Los EFECTIVOS de un usuario: lo que puede hacer de verdad, por grupo o por excepcion.
+#
+#  `origen` dice de donde le viene cada uno: `GRUPO` (con su `grupoId`) o
+#  `EXCEPCION`. Es lo que el frontend necesita para explicar un permiso en vez de
+#  solo mostrarlo.
+GET {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/permisos
+Authorization: Bearer {{token}}
+
+### Los CONFIGURADOS: los suyos propios, con `surtenEfectoHoy`.
+#
+#  No es lo mismo que el anterior: aqui salen las excepciones puestas sobre el
+#  usuario, y `surtenEfectoHoy` dice si su vigencia esta corriendo — un permiso
+#  configurado que no surte efecto hoy explica un 403 que si no parece un error.
+GET {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/permisos/configurados
+Authorization: Bearer {{token}}
+
+### Una excepcion sobre el usuario. En el usuario, `[]` es una NEGACION explicita.
+PUT {{api}}/seguridad/usuarios/{{usuario.response.body.id}}/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "niveles": [ { "sistema": "identidad", "acceso": "grupos", "privilegios": ["LECTURA"] } ],
+  "observacion": "Excepcion nominal mientras cubre la jefatura"
+}
+
+# ─────────────── LOS NEGATIVOS, que son la mitad del contrato ───────────────
+
+### Sin token → 401 NO_AUTENTICADO
+#
+#  Este cuerpo lo escribe `RespuestaDeError` a mano, ANTES del DispatcherServlet,
+#  y tiene CUATRO campos —`status`, `title`, `codigo`, `mensaje`— sin `type` ni
+#  `detail`. Los errores que si llegan al controlador son `ProblemDetail`
+#  (`application/problem+json`). Reacciona a `codigo`, que esta en los dos.
+GET {{api}}/seguridad/usuarios
+
+### Falta la observacion → 422
+POST {{api}}/seguridad/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "cuenta": "sin.observacion", "nombre": "Sin motivo" }
+
+### Observacion de menos de 5 caracteres → 422
+POST {{api}}/seguridad/grupos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nombre": "Corto {{sufijo}}", "observacion": "ok" }
+
+### Permisos sin `sistema` → 422 enumerando los cinco
+PUT {{api}}/seguridad/grupos/1/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "niveles": [ { "acceso": "usuarios", "privilegios": ["LECTURA"] } ],
+  "observacion": "Sin decir de que sistema es"
+}
+
+### Un sistema que no existe → 422
+GET {{api}}/seguridad/accesos?sistema=tesoreria
+Authorization: Bearer {{token}}
+
+### Un `ordenarPor` fuera de la lista blanca → 422 ORDEN_NO_ADMITIDO
+GET {{api}}/seguridad/usuarios?ordenarPor=correo
+Authorization: Bearer {{token}}
+
+### Un parametro que la operacion no declara → 422 nombrandolo
+GET {{api}}/seguridad/usuarios?consumidor=rentas
+Authorization: Bearer {{token}}
+
+### Vigencia invertida → 422
+PUT {{api}}/seguridad/usuarios/1/vigencia
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "vigenciaDesde": "2026-12-31", "vigenciaHasta": "2026-01-01", "observacion": "Las dos fechas al reves" }
+
+### Un grupo que no existe (o es de otra municipalidad) → 404
+#
+#  El 404 de «otra municipalidad» no es cortesia: es el RLS. La fila existe y esta
+#  consulta no la ve, asi que no hay forma de distinguir «no existe» de «no es
+#  tuya» — que es exactamente la propiedad que ADR-0002 compra.
+GET {{api}}/seguridad/grupos/999999/miembros
+Authorization: Bearer {{token}}
+
+### El verbo equivocado sobre una ruta QUE EXISTE → 405, con la cabecera `Allow`
+#
+#  Tiene que ser una ruta con manejador: `/grupos/{id}/baja` existe y solo por POST.
+#  `DELETE /seguridad/usuarios/{id}` da **404**, no 405, y es correcto — esa ruta no
+#  tiene ningun manejador, asi que no hay verbo admitido que anunciar.
+GET {{api}}/seguridad/grupos/1/baja
+Authorization: Bearer {{token}}
+
+### Y una ruta que no existe con ningun verbo → 404
+DELETE {{api}}/seguridad/usuarios/1
+Authorization: Bearer {{token}}
+
+### El ultimo administrador no se puede quedar sin privilegios → 409
+#
+#  «El cambio dejaria a la municipalidad sin ningun usuario capaz de administrar
+#  permisos, y de ahi no se sale por el sistema.» Es la unica guarda de la API que
+#  protege contra dejar el sistema inoperable desde dentro.
+PUT {{api}}/seguridad/usuarios/1/permisos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "niveles": [ { "sistema": "identidad", "acceso": "permisos", "privilegios": [] } ],
+  "observacion": "Intento de retirar al ultimo administrador"
+}

@@ -53,7 +53,7 @@ El estado medido de cada pieza esta en `CLAUDE.md`, fila a fila.
 | `backend/` — seis modulos y **cero reglas de negocio** | Lo aporta el otro carril de este mismo issue: `dominio-compartido`, `esquema`, `plataforma`, `seguridad`, `nucleo` (vacio salvo su `package-info`) y `aplicacion`. Su estado real lo dice su propia fila del registro |
 | `docs/30-arquitectura/adr/` | **Existe el indice, y ningun ADR propio** — es correcto: la decision que crea este sistema es ADR-0039 y vive en `infrastructure` |
 | Las imagenes `ghcr.io/hneyra/kamayuk-identidad{,-migrador}` | **NO existen todavia.** El descriptor las nombra igual, y es correcto: describe como se desplegaria, y **`infrastructure` no puede declarar `kamayuk:versionDeIdentidad` hasta que las dos de ese `sha` esten publicadas y comprobadas contra el registro** |
-| Que `infrastructure` lo componga como quinto sistema | **NO todavia**: es su PR hermano (AC-6 del issue #1). Hasta que entre, este descriptor se verifica aqui y no lo compone nadie — que es el riesgo que ADR-0031 §Consecuencias nombra: «el descriptor que nadie compone» |
+| Que `infrastructure` lo componga como quinto sistema | **Si**, desde `infrastructure@49ceb1a`: `infra/descriptor/sistemas.ts` lo importa y lo registra, `infra/config.ts` lo lleva en `SISTEMAS_CON_IMAGEN`, y la guarda del compose ya conoce que su backend se llama `identidad-sistema`. Medido el 2026-09-10 |
 
 ## Por donde entrar
 

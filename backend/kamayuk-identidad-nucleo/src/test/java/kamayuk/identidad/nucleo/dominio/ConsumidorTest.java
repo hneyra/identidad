@@ -52,7 +52,7 @@ class ConsumidorTest {
     void loQueNoEsUnaCuentaDeServicioSeRechaza() {
         for (String azp :
                 List.of(
-                        "sgtm-backoffice",
+                        "kamayuk-backoffice",
                         "kamayuk-caja",
                         "kamayuk-caja-servicio",
                         "kamayuk-caja-servicio-20010",
