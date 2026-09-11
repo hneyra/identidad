@@ -63,8 +63,8 @@ cd ../backend && ./gradlew verificarArquitectura
 | Que el artefacto levante en los dos perfiles | `./gradlew verificarArranque` | `backend/` |
 | Todo, mas el formato | `./gradlew build` | `backend/` |
 | Arreglar el formato | `./gradlew spotlessApply` | `backend/` |
-| Levantar la plataforma | `docker compose -f despliegue/plataforma.compose.yaml up -d --wait` | `../infrastructure/` |
-| Levantar ESTE sistema contra ella | `docker compose -f despliegue/compose.yaml up --build --wait` | aqui |
+| Levantar la plataforma, este sistema y sus identidades | `./levantar-todo.sh identidad` | `../infrastructure/despliegue/` |
+| Ejercer la API de punta a punta (55 casos) | `./ejercer.sh` | `despliegue/pruebas-e2e/` |
 | La guarda del registro | `node docs/00-gobierno/verificar-fila-del-registro.mjs` | aqui |
 | Su autoprueba, que va **antes** | `node docs/00-gobierno/verificar-las-muestras-del-registro.mjs` | aqui |
 
@@ -74,12 +74,40 @@ Este repositorio **no trae PostgreSQL ni Keycloak**: los usa. Los levanta el com
 plataforma, que vive en el clon hermano:
 
 ```bash
-cp despliegue/.env.ejemplo despliegue/.env      # en `infrastructure`, y poner claves generadas
-docker compose -f ../infrastructure/despliegue/plataforma.compose.yaml up -d --wait
-docker compose -f despliegue/compose.yaml up --build --wait
+cd ../infrastructure/despliegue && ./levantar-todo.sh identidad
 ```
 
-El segundo encadena tres servicios —`identidad-migraciones` → `identidad-implantacion` →
+Eso genera el `.env` si falta —con una clave **distinta** por rol—, levanta la plataforma, levanta
+este sistema y prepara las identidades del realm, **en ese orden**. Al terminar imprime las dos
+credenciales que `despliegue/pruebas-e2e/ejercer.sh` necesita. Lo mismo corre en CI en cada PR que
+toque la plataforma:
+[`arranque-en-limpio.yml`](https://github.com/hneyra/infrastructure/blob/main/.github/workflows/arranque-en-limpio.yml).
+
+A mano son dos comandos, y el **`--env-file` no es opcional**:
+
+```bash
+docker compose -f ../infrastructure/despliegue/plataforma.compose.yaml \
+  --env-file ../infrastructure/despliegue/.env up -d --wait
+docker compose -f despliegue/compose.yaml \
+  --env-file ../infrastructure/despliegue/.env up --build --wait
+```
+
+**Esta guia lo omitia, y era el defecto y no un descuido de redaccion**: este compose interpola
+variables del `.env` de la plataforma —las claves de `kamayuk_owner` y `kamayuk_app` son del motor
+que ella levanta—, no declara `env_file:` y no tiene `.env` propio. Sin `--env-file` el `up` muere
+en el primer `${...:?}`, y el mensaje —«falta KAMAYUK_CLAVE_OWNER»— manda a buscar una variable, no
+un argumento que falta. Es
+[`infrastructure`#74](https://github.com/hneyra/infrastructure/issues/74).
+
+Y para que un token **sirva** hacen falta cuatro pasos mas, que hace
+`infrastructure/despliegue/identidad/preparar-identidades.sh` —encadenado por `levantar-todo.sh`— y
+de los que **tres son rodeos de defectos abiertos**
+([#72](https://github.com/hneyra/infrastructure/issues/72),
+[#73](https://github.com/hneyra/infrastructure/issues/73),
+[#74](https://github.com/hneyra/infrastructure/issues/74)). El detalle, con su sintoma, esta en
+[`despliegue/pruebas-e2e/README.md`](../../despliegue/pruebas-e2e/README.md).
+
+El compose de este sistema encadena tres servicios —`identidad-migraciones` → `identidad-implantacion` →
 `identidad-sistema`— con `depends_on: service_completed_successfully`, que es la misma
 dependencia que en el cluster expresa el `initContainer` del Job de implantacion.
 

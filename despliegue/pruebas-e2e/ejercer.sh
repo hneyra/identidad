@@ -11,10 +11,15 @@
 #      ./ejercer.sh --sin-buzon          # solo administracion, DICIENDO que se omite
 #
 #  Lo que necesita, y de donde sale:
-#      CLAVE_DEL_ADMINISTRADOR   la fija `infrastructure/despliegue/identidad/crear-usuario.sh`
-#                                SIN `--reset` (con `--reset` es temporal y no sirve)
-#      CLAVE_DE_SERVICIO_RENTAS  la clave del cliente `kamayuk-rentas-servicio-<ubigeo>`,
-#                                la misma que se le dio a `reconciliar-identidades.sh servicios`
+#      CLAVE_DEL_ADMINISTRADOR   la IMPRIME `infrastructure/despliegue/identidad/preparar-identidades.sh`
+#                                al terminar, junto con la de servicio. Por debajo la fija
+#                                `crear-usuario.sh` SIN `--reset` (con `--reset` es temporal:
+#                                Keycloak exige cambiarla al entrar y el `password` grant no sirve)
+#      CLAVE_DE_SERVICIO_RENTAS  la clave del cliente `kamayuk-rentas-servicio-<ubigeo>`, que el
+#                                mismo guion genera en `despliegue/.claves-de-servicio/`
+#
+#      Las dos de una vez, desde cero:
+#          cd ../../../infrastructure/despliegue && ./levantar-todo.sh identidad
 #
 #  Todo lo demas tiene por omision los valores de la plataforma local, y se puede
 #  pisar por entorno: INGRESO, KEYCLOAK, REALM, UBIGEO, ADMINISTRADOR.
@@ -26,12 +31,40 @@
 # ============================================================================
 set -uo pipefail
 
-INGRESO="${INGRESO:-http://localhost:8082}"
-KEYCLOAK="${KEYCLOAK:-http://localhost:8181}"
+# ── DE DONDE SALEN LOS PUERTOS, y por que no estan escritos aqui ─────────────
+#
+# Estaban, y eran los de UNA maquina: 8082/8181. `.env.ejemplo` y los seis `docs/D0-desarrollo/`
+# dicen 8080/8180, asi que un CI que copiara el ejemplo al pie de la letra levantaria Keycloak
+# donde este arnes no lo busca — y el sintoma seria «Connection refused» a un servicio que esta
+# perfectamente arriba. Es #74.
+#
+# Se arregla por construccion y no eligiendo un numero: la fuente de verdad de los puertos es
+# el `.env` del compose de la plataforma, que es quien los publica. Se lee de ahi, y lo que
+# venga por entorno gana —para apuntar a otra instalacion—.
+ENV_DE_LA_PLATAFORMA="${ENV_DE_LA_PLATAFORMA:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." 2>/dev/null && pwd)/infrastructure/despliegue/.env}"
+if [ -f "$ENV_DE_LA_PLATAFORMA" ]; then
+  # En una subshell y leyendo solo lo que hace falta: `source` de un `.env` entero metería en
+  # este proceso las seis claves del motor, que este guion no necesita para nada.
+  PUERTO_INGRESO=$(sed -nE 's/^KAMAYUK_PUERTO_INGRESO=([0-9]+).*/\1/p' "$ENV_DE_LA_PLATAFORMA" | tail -1)
+  PUERTO_KEYCLOAK=$(sed -nE 's/^KAMAYUK_PUERTO_IDENTIDAD=([0-9]+).*/\1/p' "$ENV_DE_LA_PLATAFORMA" | tail -1)
+  UBIGEO_DEL_ENV=$(sed -nE 's/^KAMAYUK_UBIGEO=([0-9]+).*/\1/p' "$ENV_DE_LA_PLATAFORMA" | tail -1)
+  ADMIN_DEL_ENV=$(sed -nE 's/^KAMAYUK_ADMINISTRADOR=([A-Za-z0-9._-]+).*/\1/p' "$ENV_DE_LA_PLATAFORMA" | tail -1)
+fi
+# Los ultimos recursos son los de `.env.ejemplo`, que son los que documenta D0 — NO los de la
+# maquina donde esto se escribio.
+INGRESO="${INGRESO:-http://localhost:${PUERTO_INGRESO:-8080}}"
+KEYCLOAK="${KEYCLOAK:-http://localhost:${PUERTO_KEYCLOAK:-8180}}"
 REALM="${REALM:-kamayuk}"
-UBIGEO="${UBIGEO:-200105}"
-ADMINISTRADOR="${ADMINISTRADOR:-administrador}"
+UBIGEO="${UBIGEO:-${UBIGEO_DEL_ENV:-200101}}"
+ADMINISTRADOR="${ADMINISTRADOR:-${ADMIN_DEL_ENV:-jperez}}"
 API="$INGRESO/identidad/api/v1"
+
+printf 'Contra %s (realm «%s», ubigeo %s, administrador «%s»)\n' \
+  "$INGRESO" "$REALM" "$UBIGEO" "$ADMINISTRADOR"
+[ -f "$ENV_DE_LA_PLATAFORMA" ] \
+  && printf 'Puertos derivados de %s\n' "$ENV_DE_LA_PLATAFORMA" \
+  || printf 'SIN .env de la plataforma (%s): puertos por omision, los de .env.ejemplo\n' \
+       "$ENV_DE_LA_PLATAFORMA"
 
 CON_BUZON=1
 [ "${1:-}" = "--sin-buzon" ] && CON_BUZON=0
@@ -40,7 +73,7 @@ for h in curl jq; do
   command -v "$h" >/dev/null || { echo "FALTA la herramienta «$h»"; exit 2; }
 done
 
-: "${CLAVE_DEL_ADMINISTRADOR:?falta CLAVE_DEL_ADMINISTRADOR: la fija crear-usuario.sh SIN --reset}"
+: "${CLAVE_DEL_ADMINISTRADOR:?falta CLAVE_DEL_ADMINISTRADOR: la imprime infrastructure/despliegue/identidad/preparar-identidades.sh}"
 if [ "$CON_BUZON" = 1 ]; then
   : "${CLAVE_DE_SERVICIO_RENTAS:?falta CLAVE_DE_SERVICIO_RENTAS (la de kamayuk-rentas-servicio-$UBIGEO). Para dejar el buzon fuera A PROPOSITO: ./ejercer.sh --sin-buzon}"
 fi
