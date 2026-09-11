@@ -130,6 +130,17 @@ services:
       # el runner no se registra, el proceso sale con codigo 0 y el Job queda
       # `Complete` sin haber implantado nada—.
       KAMAYUK_IMPLANTACION_UBIGEO: ${KAMAYUK_UBIGEO:?falta KAMAYUK_UBIGEO en el .env de la plataforma}
+      # El `id` con el que se escribe la fila de `municipalidad`, DECLARADO y no pedido a
+      # la secuencia (infrastructure#73, salida 1). De el sale el claim
+      # `municipalidad_id` de todo token, y con la secuencia habia TRES valores distintos
+      # —el ubigeo, el del archivo versionado y el que asignaba la base— sin nada que los
+      # reconciliara: el sintoma era 403 «la cuenta no esta dada de alta» CON LA FILA
+      # DELANTE, porque el RLS filtraba por otro inquilino.
+      #
+      # Por omision 1, que es lo que una base recien creada asigna: asi una instalacion
+      # local no tiene que declararlo, y una que ya exista con otro id falla diciendolo
+      # en vez de seguir con el claim desalineado.
+      KAMAYUK_IMPLANTACION_MUNICIPALIDADID: ${KAMAYUK_MUNICIPALIDAD_ID:-1}
       KAMAYUK_IMPLANTACION_NOMBRE: ${KAMAYUK_MUNICIPALIDAD:?falta KAMAYUK_MUNICIPALIDAD en el .env de la plataforma}
       KAMAYUK_IMPLANTACION_TIPO: ${KAMAYUK_TIPO_DE_MUNICIPALIDAD:-DISTRITAL}
       # La cuenta TIENE que ser la misma que el usuario de Keycloak: es lo unico

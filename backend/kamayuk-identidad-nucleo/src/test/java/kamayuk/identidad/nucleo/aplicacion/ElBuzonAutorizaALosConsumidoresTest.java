@@ -215,6 +215,10 @@ class ElBuzonAutorizaALosConsumidoresTest {
                         arnes.permisos(),
                         new DatosDeImplantacion(
                                 UBIGEO,
+                                // El id DECLARADO (infrastructure#73, salida 1). En una base de
+                                // prueba recien creada la secuencia habria dado 1 igual, asi que
+                                // este 1 no oculta nada: lo que cambia es QUIEN lo decide.
+                                1L,
                                 "Municipalidad de la prueba",
                                 "DISTRITAL",
                                 "administrador",

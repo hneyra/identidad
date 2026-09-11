@@ -238,6 +238,19 @@ function variablesDeImplantacion(e: EntornoDelDescriptor): VariableDeEntorno[] {
     { name: "SPRING_PROFILES_ACTIVE", value: "batch" },
     ...credencialesDeLaAplicacion(e),
     { name: "KAMAYUK_IMPLANTACION_UBIGEO", value: i.ubigeo },
+    // El `id` DECLARADO de la fila de `municipalidad` (infrastructure#73, salida 1).
+    //
+    // El contrato ya lo traia y nadie lo consumia, y su propio docblock decia el precio:
+    // «nada aqui lo comprueba contra la fila […] un valor que no corresponda a la
+    // municipalidad del `ubigeo` deja al ingestor y al publicador proyectando bajo otro
+    // contexto — y RLS no lo delata». Desde esta linea, la implantacion de ESTE sistema lo
+    // escribe en vez de pedirlo a la secuencia, asi que la comprobacion existe: si la fila
+    // ya esta con otro id, el `Job` falla nombrando los dos numeros.
+    //
+    // Sin guion bajo entre MUNICIPALIDAD e ID, como NOMBREDELADMINISTRADOR de abajo: en
+    // una variable de entorno el `_` se traduce a punto, y
+    // `KAMAYUK_IMPLANTACION_MUNICIPALIDAD_ID` seria `kamayuk.implantacion.municipalidad.id`.
+    { name: "KAMAYUK_IMPLANTACION_MUNICIPALIDADID", value: String(i.municipalidadId) },
     { name: "KAMAYUK_IMPLANTACION_NOMBRE", value: i.nombre },
     { name: "KAMAYUK_IMPLANTACION_TIPO", value: i.tipo },
     // No crea ninguna contrasena: la credencial vive en Keycloak, y esta cuenta tiene que ser

@@ -45,6 +45,23 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("kamayuk.implantacion")
 public record DatosDeImplantacion(
         String ubigeo,
+        /**
+         * El {@code id} con el que la fila de {@code municipalidad} se escribe, DECLARADO.
+         *
+         * <p>Es la salida 1 de <a
+         * href="https://github.com/hneyra/infrastructure/issues/73">infrastructure#73</a>: el claim
+         * {@code municipalidad_id} se escribia con TRES valores distintos —el ubigeo, el {@code
+         * municipalidadId} del archivo versionado, y el que la secuencia asignaba al implantar— y
+         * nada los reconciliaba. Medido en {@code stg} el 2026-09-11: el token de {@code
+         * kamayuk-rentas-servicio-200105} traia {@code municipalidad_id: 200105} y la fila de
+         * {@code usuario} estaba en el inquilino {@code 1}, asi que el RLS escondia las cinco
+         * fichas y el guardia concluia —correctamente, desde donde mira— que la cuenta no existe.
+         *
+         * <p><b>Con esto el archivo versionado pasa a ser la fuente de la verdad</b>, que es lo que
+         * esa salida compra: el id no lo decide una secuencia de PostgreSQL sino quien declara la
+         * municipalidad, y los dos sitios que escriben el claim pueden apuntar al mismo numero.
+         */
+        long municipalidadId,
         String nombre,
         String tipo,
         String administrador,
@@ -59,6 +76,19 @@ public record DatosDeImplantacion(
         if (!ubigeo.matches("\\d{6}")) {
             throw new IllegalArgumentException(
                     "El ubigeo son seis digitos, y llego '" + ubigeo + "'");
+        }
+        // Un `long` sin valor lo enlaza Spring como 0, que no es un id: lo que hay que
+        // distinguir es «no lo declararon» de «declararon uno malo», y las dos cosas se
+        // arreglan igual —declarandolo—, asi que el mensaje nombra la propiedad.
+        if (municipalidadId <= 0) {
+            throw new IllegalArgumentException(
+                    "Falta kamayuk.implantacion.municipalidad-id, o no es positivo (llego "
+                            + municipalidadId
+                            + "). Es el `id` con el que se escribe la fila de `municipalidad`, y"
+                            + " de el sale el claim `municipalidad_id` de todo token: sin"
+                            + " declararlo, la secuencia asignaria uno que el archivo versionado"
+                            + " no conoce y el RLS esconderia las filas de esta municipalidad"
+                            + " (infrastructure#73)");
         }
         nombre = exigir(nombre, "kamayuk.implantacion.nombre");
         tipo = exigir(tipo, "kamayuk.implantacion.tipo").toUpperCase(Locale.ROOT);

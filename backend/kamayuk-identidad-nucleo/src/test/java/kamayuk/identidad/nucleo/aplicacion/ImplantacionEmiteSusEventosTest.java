@@ -1,6 +1,7 @@
 package kamayuk.identidad.nucleo.aplicacion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -215,6 +216,29 @@ class ImplantacionEmiteSusEventosTest {
                 .hasSize(4);
     }
 
+    /**
+     * Y si la fila ya existe con OTRO id, la implantacion FALLA en vez de seguir.
+     *
+     * <p>Es la decision de diseño de `darDeAltaSiFalta` y la que hay que poder demostrar: ese id es
+     * el inquilino del que cuelga el RLS de todas las tablas, asi que cambiarlo dejaria huerfana
+     * cada fila y sin un solo error. Seguir con el declarado sin cambiar la fila seria peor: el
+     * claim apuntaria a un inquilino vacio.
+     */
+    @Test
+    void siLaFilaExisteConOtroIdFallaNombrandoLosDos() throws SQLException {
+        implantarCon(1L);
+
+        assertThatThrownBy(() -> implantarCon(9L))
+                .as(
+                        "reimplantar con un id declarado distinto del que la fila tiene paso sin"
+                                + " protestar. El claim `municipalidad_id` apuntaria entonces a un"
+                                + " inquilino que no tiene ni una fila, y el RLS no lo delata porque"
+                                + " la base hace exactamente lo que se le pide")
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ya esta dada de alta con el id 1")
+                .hasMessageContaining("lo declarado es 9");
+    }
+
     /** Las cuentas afiliadas y activas del grupo del buzon, por su nombre. */
     private List<String> cuentasDelGrupoDeConsumidores() throws SQLException {
         return arnes.filas(
@@ -227,6 +251,10 @@ class ImplantacionEmiteSusEventosTest {
     }
 
     private void implantar() {
+        implantarCon(1L);
+    }
+
+    private void implantarCon(long municipalidadId) {
         new ImplantarMunicipalidad(
                         new RegistroDeMunicipalidadesJdbc(
                                 arnes.base().url(),
@@ -237,6 +265,7 @@ class ImplantacionEmiteSusEventosTest {
                         arnes.permisos(),
                         new DatosDeImplantacion(
                                 UBIGEO,
+                                municipalidadId,
                                 "Municipalidad de la prueba",
                                 "DISTRITAL",
                                 ADMINISTRADOR,
