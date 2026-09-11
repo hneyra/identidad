@@ -207,7 +207,11 @@ public class ImplantarMunicipalidad implements ApplicationRunner {
     public void run(ApplicationArguments argumentos) {
         long municipalidadId =
                 registro.darDeAltaSiFalta(
-                        datos.ubigeo(), datos.nombre(), datos.tipo(), datos.esDemostracion());
+                        datos.ubigeo(),
+                        datos.municipalidadId(),
+                        datos.nombre(),
+                        datos.tipo(),
+                        datos.esDemostracion());
 
         // El perfil batch no tiene filtros HTTP, asi que los dos contextos que en una peticion
         // salen del token se fijan aqui a mano. `Origen.deProceso` existe para esto: una escritura
