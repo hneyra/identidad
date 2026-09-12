@@ -26,7 +26,7 @@ descubrio, con su referencia; lo medido **aqui** va en la tabla del final, y esa
 | `infrastructure/` — el descriptor de despliegue | **Existe.** `yarn verificar` en verde —lint, tipos y **21 pruebas**—, sin Pulumi, sin token y sin cluster |
 | `despliegue/compose.yaml` | **Existe**, con tres servicios encadenados contra la plataforma. **NO se ha levantado**: la maquina donde se escribio no tiene demonio de Docker, y decir que funciona seria deducirlo de que el YAML analiza |
 | `.github/workflows/` | **Existe desde el primer commit**, con **cuatro** flujos: `backend.yml`, `infraestructura.yml`, `registro.yml` y `publicar-imagenes.yml`. **Sin `frontend.yml` ni `documentacion.yml`**, y es una afirmacion: no hay pantalla ni corpus |
-| `docs/00-gobierno/` — la guarda del registro y su autoprueba | **Existen y corren en verde**: 9 muestras, 3 rutas de codigo de produccion, todas con muestra que las ejerza |
+| `docs/00-gobierno/` — la guarda del registro y su autoprueba | **Existen y corren en verde**: **12 muestras, 4 rutas** de codigo de produccion, todas con muestra que las ejerza. La fila la busca en **`docs/agent/HISTORY.md` y solo ahi** desde el 2026-09-12, y tiene que ser una **fila** —una cabecera que cite el issue no cuenta— |
 | `backend/` — seis modulos | Lo aporta el otro carril del issue #1. Su estado real lo dice **su** fila del registro, no esta tabla |
 | `backend/kamayuk-identidad-nucleo` — el contexto acotado | **Ya no esta vacio** (etapa 2, [#2](https://github.com/hneyra/identidad/issues/2)). Las **once escrituras** de administracion —altas, bajas, reactivaciones, vigencias, la afiliacion y las dos matrices de permisos—, sus dos repositorios, los **cuatro controladores** bajo `/identidad/api/v1/seguridad`, el buzon de salida y la implantacion. Copiado de `rentas@33f329a2` (`kamayuk-rentas-seguridad`): `git mv` no cruza repositorios, asi que **la historia de esas clases se queda en el `git log` de `rentas`** |
 | `identidad_evento` — el buzon de salida | **Existe** (`V2`). Siete tipos, el cuerpo con la fila **entera** tal como quedo, y la emision **dentro de la misma transaccion** que la escritura. **Sin `estado`**, e inmutable: hay cuatro consumidores y una sola columna no puede decir «entregado a `caja` y no a `rentas`» |
@@ -329,10 +329,13 @@ la mutacion sea real y las cifras cuadren— no lo puede leer una maquina: eso l
 | Verificacion | Como se demostro que puede fallar | Resultado |
 |---|---|---|
 
-**Las 11 filas viven en [`docs/agent/HISTORY.md`](docs/agent/HISTORY.md)**, y ahí es donde se
+**Las 12 filas viven en [`docs/agent/HISTORY.md`](docs/agent/HISTORY.md)**, y ahí es donde se
 escribe la siguiente. Se mudaron el 2026-09-12: eran el **74 %** de este archivo, que se carga
 entero en cada sesión
 ([`infrastructure`#114](https://github.com/hneyra/infrastructure/issues/114)).
 
 La tabla de arriba se deja **con su cabecera y vacía** a propósito: es la forma de la fila que hay
-que escribir, y tenerla delante evita ir a buscarla.
+que escribir, y tenerla delante evita ir a buscarla. **Pero escribirla aquí ya no cuenta**: desde
+el 2026-09-12 —los seis repositorios migrados— la guarda busca la fila en `docs/agent/HISTORY.md`
+**y solo ahí**, y exige que sea una **fila** (una línea que empiece por `|`): una cabecera o un
+párrafo que citen el issue no la satisfacen.

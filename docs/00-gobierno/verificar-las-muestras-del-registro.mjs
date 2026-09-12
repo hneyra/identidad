@@ -4,9 +4,13 @@
    esquivada, que en una convencion de proceso es peor todavia — el peaje se aprende a
    rodear y la tabla se queda igual de vacia.
 
-   Asi que se corre la comprobacion contra nueve situaciones fabricadas, cinco que tiene
-   que rechazar y cuatro que tiene que dejar pasar, y se exige que el rechazo **nombre el
+   Asi que se corre la comprobacion contra doce situaciones fabricadas, siete que tiene
+   que rechazar y cinco que tiene que dejar pasar, y se exige que el rechazo **nombre el
    issue**: rechazar por el motivo equivocado seria pasar por casualidad.
+
+   Y una de las siete es la que fija QUE cuenta como fila (`infrastructure`#114): una
+   cabecera o un parrafo que citen el issue **no valen**. Sin ella, la guarda se satisface
+   con que alguien escriba el numero en cualquier sitio del archivo.
 
    Y LAS TRES RUTAS VAN EN PAREJA CON SU CONTRASTE, que es la mitad que los hermanos
    tuvieron que anadir despues (`rentas`#45, `caja`#39):
@@ -57,6 +61,22 @@ const CASOS = [
     cuerpo: 'Cierra #1',
     archivos: ['infrastructure/src/descriptor.ts'],
     anadido: '+| Una fila cualquiera (#11) | … | … |',
+    esperado: 'rojo',
+    dice: '#1',
+  },
+  {
+    // `infrastructure`#114, y lo destaparon TRES carriles a la vez al mudar el registro: el PR de
+    // la mudanza anade una cabecera que cita su propio issue —«el registro se muda aqui por
+    // #114»—, asi que la rotura de control de aquel trabajo —quitar la fila y comprobar que la
+    // guarda muerde— salia VERDE en los tres. Una guarda que un parrafo satisface no exige una
+    // fila: exige que alguien escriba el numero en algun sitio.
+    //
+    // El numero es el MISMO que el del cuerpo a proposito: si fuera otro, esto saldria rojo por
+    // el motivo trivial —el issue no se nombra— y no mediria nada.
+    nombre: 'una cabecera o un parrafo que citen el issue NO valen como fila',
+    cuerpo: 'Cierra #1.',
+    archivos: ['backend/kamayuk-identidad-nucleo/src/main/java/kamayuk/identidad/nucleo/Algo.java'],
+    anadido: '+# Registro\n+\n+Se mudo aqui por #1, y esto no es una fila.',
     esperado: 'rojo',
     dice: '#1',
   },

@@ -96,17 +96,19 @@ export const RUTAS_DE_CODIGO = [
 ];
 
 /**
- * Donde puede estar la fila. **Son dos a proposito, y es una ventana de compatibilidad**
- * (`infrastructure`#114): el registro se muda de `CLAUDE.md` a `docs/agent/HISTORY.md` —eran
- * el 74 % de un archivo que cada sesion carga entero— y los seis repositorios no migran a la
- * vez.
+ * Donde vive la fila. **Es UNO, y ya no es una ventana de compatibilidad**
+ * (`infrastructure`#114): el registro se mudo de `CLAUDE.md` a `docs/agent/HISTORY.md` —eran
+ * el 74 % de un archivo que cada sesion carga entero—, y **los seis repositorios migraron el
+ * 2026-09-12**. Esto es el tercer tiempo de esa mudanza: el que estrecha.
  *
- * Mientras las dos esten aqui, una fila escrita en cualquiera de los dos cuenta. El dia que
- * los seis hayan migrado se retira `CLAUDE.md` **en un cambio propio**, y entonces una fila
- * en el sitio viejo deja de contar. Estrechar antes deja rojos cruzados en los que aun no
- * han migrado.
+ * Mientras la lista tuvo los dos, una fila escrita en cualquiera de ellos contaba, que es lo
+ * que permitio que los seis migraran a su ritmo sin rojos cruzados. **Desde este cambio, una
+ * fila escrita en `CLAUDE.md` NO cuenta**: ese archivo conserva la doctrina —que es una fila y
+ * que tiene que demostrar— y su cabecera vacia, pero la historia se escribe aqui. Dejar los
+ * dos ahora seria dejar abierto el unico sitio donde la fila se puede escribir sin que nadie
+ * la encuentre despues.
  */
-const DONDE_VIVE_LA_FILA = ['docs/agent/HISTORY.md', 'CLAUDE.md'];
+const DONDE_VIVE_LA_FILA = ['docs/agent/HISTORY.md'];
 
 /** Como se declara que un PR cierra un issue. GitHub admite estas y alguna mas. */
 const CIERRA = /\b(?:cierra|closes?|close|fixes?|fix|resuelve|resolves?)\s+#(\d+)/gi;
@@ -158,10 +160,14 @@ function principal() {
     console.error('');
     for (const numero of sinFila) {
       console.error(
-        `  · Este PR cierra #${numero} y no lo nombra ninguna linea nueva de ` +
+        `  · Este PR cierra #${numero} y no lo nombra ninguna FILA nueva de ` +
           `${DONDE_VIVE_LA_FILA.join(' ni de ')}.`,
       );
     }
+    console.error('');
+    console.error('  Tiene que ser una fila —una linea que empiece por `|`—. Una cabecera o un');
+    console.error('  parrafo que citen el issue NO cuentan: con eso, la rotura de control de');
+    console.error('  quien escribe la fila saldria verde sin haber escrito ninguna.');
     console.error('');
     console.error('  Esa tabla es la memoria del proyecto: cada issue deja ahi que se');
     console.error('  implemento y COMO SE DEMOSTRO QUE LA VERIFICACION PUEDE FALLAR. Una fila');
@@ -181,9 +187,27 @@ function principal() {
 
 // ---------------------------------------------------------------------------
 
-/** Si ese texto nombra al issue como tal y no como parte de otro numero. */
+/**
+ * Si ese texto trae una FILA que nombre al issue —y no como parte de otro numero—.
+ *
+ * **Lo que se exige es una fila, no una mencion**, y la diferencia la destaparon tres carriles
+ * a la vez al mudar el registro (`infrastructure`#114). Hasta entonces esto buscaba `#<n>` en
+ * cualquier linea anadida, y el PR de la mudanza anade una CABECERA que cita su propio issue
+ * —«el registro se muda aqui por #114»—: con eso, la **rotura de control** de aquel trabajo
+ * —quitar la fila y comprobar que la guarda se pone roja— salia **VERDE** en los tres. Una
+ * guarda que un parrafo satisface no exige una fila: exige que alguien escriba el numero.
+ *
+ * Asi que el numero tiene que aparecer en una linea que **sea una fila de la tabla**, o sea
+ * que empiece por `|`. El `+` opcional del principio es el del `git diff`, que es de donde
+ * sale este texto cuando no se le pasa `--anadido`.
+ *
+ * Sigue sin mirar QUE dice la fila —que la mutacion sea real y las cifras cuadren lo lee la
+ * revision—: lo unico que se estrecha es donde cuenta el numero.
+ */
 function nombra(texto, numero) {
-  return new RegExp(`#${numero}(?![0-9])`).test(texto);
+  const esFila = /^\+?\s*\|/;
+  const loNombra = new RegExp(`#${numero}(?![0-9])`);
+  return texto.split('\n').some((linea) => esFila.test(linea) && loNombra.test(linea));
 }
 
 function lineas(texto) {
