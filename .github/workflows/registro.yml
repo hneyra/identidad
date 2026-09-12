@@ -1,5 +1,10 @@
 # La guarda de #711: un PR que cierra un issue y toca codigo de produccion deja su fila en la
-# tabla «Verificar antes de afirmar» de CLAUDE.md.
+# tabla «Verificar antes de afirmar» de `docs/agent/HISTORY.md`.
+#
+# EL SITIO ES UNO, Y ESTE COMENTARIO DECIA EL VIEJO. Hasta el 2026-09-12 la tabla vivia en
+# `CLAUDE.md` (`infrastructure`#114); ahi se quedan la doctrina y la cabecera vacia, y la
+# historia se escribe en `docs/agent/HISTORY.md`. Una cabecera que nombra el sitio equivocado no
+# pone nada rojo: manda a mirar donde no esta, que es la forma mas barata de perder una hora.
 #
 # POR QUE ESTA EN CI Y NO EN UNA COSTUMBRE
 # Esa tabla es la memoria del proyecto: cada issue deja ahi que se implemento y COMO SE DEMOSTRO
